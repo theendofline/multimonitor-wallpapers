@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*.so
+
+# Qt
+*.pro.user*
+*.qbs.user*
+*.qmlproject.user*
+*.autosave
+moc_*.cpp
+qrc_*.cpp
+ui_*.h
+Makefile*
+*build-*
+*.qm
+*.qmlc
+*.jsc
+
+# IDEs and editors
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Build outputs
+/build/
+/dist/
+*.egg-info/
+*.spec
+
+# AppImage related
+/AppDir/
+/appimage-build/
+*.AppImage
+/squashfs-root/
+
+# Project specific
+/MultiMonitorApp.egg-info/
+/MultiMonitorApp.desktop
+/MultiMonitorApp.png
+/MultiMonitorApp.svg
+/setup.py
+/AppRun
+/appimage-builder.yml
+/MANIFEST.in
+/DifferentBackgrounds.pyproject.user
+/DifferentBackgrounds.pyproject
+
+
+# Miscellaneous
+*.log
+*.bak
+*.tmp
+*.temp
