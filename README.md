@@ -58,6 +58,7 @@ The Multi-Monitor Wallpapers App is a Python-based desktop application designed 
 The main application logic is contained in the `MultiMonitorApp` class in `widget.py`. The UI is created using PySide6, and image processing is done with Pillow.
 
 To modify the UI:
+
 1. Edit the `initUI` method in the `MultiMonitorApp` class.
 2. If using Qt Designer, edit the `form.ui` file and regenerate `ui_form.py`.
 

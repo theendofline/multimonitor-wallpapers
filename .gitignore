@@ -16,6 +16,7 @@ Makefile*
 *.qm
 *.qmlc
 *.jsc
+/.qtreator/
 
 # IDEs and editors
 .vscode/
@@ -47,6 +48,7 @@ Makefile*
 /MANIFEST.in
 /DifferentBackgrounds.pyproject.user
 /DifferentBackgrounds.pyproject
+/
 
 
 # Miscellaneous
