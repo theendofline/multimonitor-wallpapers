@@ -5,16 +5,18 @@ import os  # For interacting with the operating system
 
 # Import required PySide6 modules for GUI
 from PySide6.QtWidgets import (QApplication, QMainWindow, QPushButton, QLabel,
-                                QVBoxLayout, QWidget, QFileDialog, QHBoxLayout, QLineEdit)
+                               QVBoxLayout, QWidget, QFileDialog, QHBoxLayout, QLineEdit)
 from PySide6.QtGui import QPixmap, QPalette, QColor
 from PySide6.QtCore import Qt
 
 # Import PIL for image processing
 from PIL import Image
 
+
 class MultiMonitorApp(QMainWindow):
     def __init__(self):
         super(MultiMonitorApp, self).__init__()
+        self.file_inputs = None
         self.initUI()  # Initialize the user interface
         self.files = []  # List to store selected image files
         self.handleDarkMode()  # Set up dark mode if system is using it
@@ -36,7 +38,8 @@ class MultiMonitorApp(QMainWindow):
         for file_input in self.file_inputs:
             file_input.setPlaceholderText("Select an image file")
             # Set style based on dark mode
-            file_input.setStyleSheet("color: white; background-color: #353535;" if self.isSystemInDarkMode() else "color: black; background-color: white;")
+            file_input.setStyleSheet(
+                "color: white; background-color: #353535;" if self.isSystemInDarkMode() else "color: black; background-color: white;")
             file_layout.addWidget(file_input)
 
             # Add browse button for each file input
@@ -79,7 +82,7 @@ class MultiMonitorApp(QMainWindow):
         self.files = [file_input.text() for file_input in self.file_inputs if file_input.text()]
 
         if len(self.files) < 1:
-            self.statusBar().showMessage("Please select at least one image file.") 
+            self.statusBar().showMessage("Please select at least one image file.")
             return
 
         # Validate required dependencies
@@ -92,7 +95,8 @@ class MultiMonitorApp(QMainWindow):
             self.assembleBackgroundImage(self.files)
             success = self.applyBackground()
             if success:
-                self.statusBar().showMessage("Background applied successfully. Please wait a moment for the changes to reflect.")
+                self.statusBar().showMessage(
+                    "Background applied successfully. Please wait a moment for the changes to reflect.")
             else:
                 self.statusBar().showMessage("Failed to apply background. Check logs for errors.")
         except Exception as e:
@@ -169,7 +173,8 @@ class MultiMonitorApp(QMainWindow):
 
             # Refresh the Cinnamon settings
             subprocess.check_call(["gsettings", "set", "org.cinnamon.desktop.background", "picture-uri", "''"])
-            subprocess.check_call(["gsettings", "set", "org.cinnamon.desktop.background", "picture-uri", f"file://{output_path}"])
+            subprocess.check_call(
+                ["gsettings", "set", "org.cinnamon.desktop.background", "picture-uri", f"file://{output_path}"])
 
             return True
         except subprocess.CalledProcessError as e:
@@ -236,7 +241,8 @@ class MultiMonitorApp(QMainWindow):
 
     def isSystemInDarkMode(self):
         try:
-            result = subprocess.run(["gsettings", "get", "org.gnome.desktop.interface", "color-scheme"], capture_output=True, text=True)
+            result = subprocess.run(["gsettings", "get", "org.gnome.desktop.interface", "color-scheme"],
+                                    capture_output=True, text=True)
             return 'dark' in result.stdout.lower()
         except Exception as e:
             return False
@@ -248,6 +254,7 @@ class MultiMonitorApp(QMainWindow):
                 print(f"Dependency '{command}' is missing.")
                 return False
         return True
+
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
