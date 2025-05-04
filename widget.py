@@ -255,9 +255,11 @@ class MultiMonitorApp(QMainWindow):
                 return False
         return True
 
-
-if __name__ == "__main__":
+def main():
     app = QApplication(sys.argv)
     window = MultiMonitorApp()
     window.show()
     sys.exit(app.exec())
+
+if __name__ == "__main__":
+    main()
