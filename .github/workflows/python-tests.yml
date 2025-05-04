@@ -28,14 +28,20 @@ jobs:
         curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to $HOME/.local/bin
         echo "$HOME/.local/bin" >> $GITHUB_PATH
     
+    - name: Create virtual environment
+      run: uv venv
+    
     - name: Install dependencies
       run: |
+        source .venv/bin/activate
         uv pip install pytest ruff black mypy
         if [ -f requirements.txt ]; then uv pip install -r requirements.txt; fi
         uv pip install -e .
     
     - name: Lint
-      run: just lint
+      run: |
+        source .venv/bin/activate
+        just lint
     
     - name: Install system dependencies
       run: |
@@ -44,4 +50,6 @@ jobs:
     
     - name: Test
       run: |
+        source .venv/bin/activate
         xvfb-run --auto-servernum just test 
+

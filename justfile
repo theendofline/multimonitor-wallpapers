@@ -19,12 +19,36 @@ setup:
     uv venv
     
     echo "Installing dependencies..."
+    source .venv/bin/activate
     uv pip install -e ".[dev]"
     
     echo "Development environment set up successfully."
 
+# Ensure virtual environment is activated
+_ensure_venv:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    if [[ -z "${VIRTUAL_ENV:-}" ]]; then
+        if [[ -d ".venv" ]]; then
+            echo "Activating virtual environment..."
+            if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+                source .venv/Scripts/activate
+            else
+                source .venv/bin/activate
+            fi
+        else
+            echo "No virtual environment found. Creating one..."
+            uv venv
+            if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+                source .venv/Scripts/activate
+            else
+                source .venv/bin/activate
+            fi
+        fi
+    fi
+
 # Run linting checks
-lint:
+lint: _ensure_venv
     @echo "Running ruff..."
     ruff check .
     @echo "Running black in check mode..."
@@ -34,7 +58,7 @@ lint:
     @echo "All linting checks passed!"
 
 # Format code with ruff and black
-format:
+format: _ensure_venv
     @echo "Formatting with ruff..."
     ruff check --fix .
     @echo "Formatting with black..."
@@ -42,7 +66,7 @@ format:
     @echo "Code formatting complete!"
 
 # Run tests
-test:
+test: _ensure_venv
     @echo "Running pytest..."
     pytest
     @echo "All tests passed!"
@@ -56,12 +80,12 @@ clean:
     echo "Cleaned up build artifacts and cache files."
 
 # Generate application icon
-icon:
+icon: _ensure_venv
     @echo "Generating application icon..."
     python generate_icon.py
 
 # Build AppImage for distribution
-appimage: icon
+appimage: _ensure_venv icon
     @echo "Building AppImage..."
     mkdir -p dist
     python scripts/build_appimage.py
@@ -97,11 +121,11 @@ install-just:
     fi
 
 # Run the application
-run:
+run: _ensure_venv
     python widget.py
 
 # Update dependencies to the latest versions
-update:
+update: _ensure_venv
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Updating dependencies to latest versions..."
