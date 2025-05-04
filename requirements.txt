@@ -2,11 +2,8 @@
 PySide6==6.9.0
 pillow==11.2.1
 
-<<<<<<< Updated upstream
-=======
 # Development dependencies
 pytest==8.3.5
 black==25.1.0
 ruff==0.11.8
 mypy==1.15.0
->>>>>>> Stashed changes
