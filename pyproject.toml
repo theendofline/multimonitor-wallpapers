@@ -10,6 +10,7 @@ include = '\.pyi?$'
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = "test_*.py"
+pythonpath = [".", "src"]
 
 [tool.mypy]
 python_version = "3.12"
@@ -17,15 +18,17 @@ warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 disallow_incomplete_defs = true
+mypy_path = "src"
 
 [tool.ruff]
 target-version = "py312"
 line-length = 100
 select = ["E", "F", "I", "W", "N", "B", "C4", "ARG", "SIM"]
 ignore = []
+src = ["src"]
 
 [tool.ruff.isort]
-known-first-party = ["widget"]
+known-first-party = ["multimonitor_wallpapers"]
 known-third-party = ["PySide6", "PIL"]
 
 [tool.ruff.flake8-quotes]

@@ -19,8 +19,13 @@ setup:
     uv venv
     
     echo "Installing dependencies..."
-    source .venv/bin/activate
-    uv pip install -e ".[dev]"
+    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+        source .venv/Scripts/activate
+    else
+        source .venv/bin/activate
+    fi
+    # Use pip instead of uv to install in development mode to avoid setuptools issues
+    pip install -e ".[dev]"
     
     echo "Development environment set up successfully."
 
@@ -54,7 +59,7 @@ lint: _ensure_venv
     @echo "Running black in check mode..."
     black --check .
     @echo "Running mypy..."
-    mypy widget.py
+    mypy src/multimonitor_wallpapers
     @echo "All linting checks passed!"
 
 # Format code with ruff and black
@@ -77,6 +82,7 @@ clean:
     set -euo pipefail
     echo "Cleaning build artifacts and cache files..."
     rm -rf __pycache__ .pytest_cache .ruff_cache build dist *.egg-info
+    find . -name "__pycache__" -type d -exec rm -rf {} +
     echo "Cleaned up build artifacts and cache files."
 
 # Generate application icon
@@ -122,7 +128,7 @@ install-just:
 
 # Run the application
 run: _ensure_venv
-    python widget.py
+    python multimonitor_wallpapers.py
 
 # Update dependencies to the latest versions
 update: _ensure_venv

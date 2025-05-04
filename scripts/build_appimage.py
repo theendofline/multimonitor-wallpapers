@@ -38,7 +38,7 @@ def create_appdir(appdir):
     os.makedirs(f"{appdir}/usr/share/icons/hicolor/256x256/apps", exist_ok=True)
     
     # Copy the application script
-    shutil.copy("widget.py", f"{appdir}/usr/bin/multimonitor-wallpapers")
+    shutil.copy("multimonitor_wallpapers.py", f"{appdir}/usr/bin/multimonitor-wallpapers")
     
     # Make it executable
     os.chmod(f"{appdir}/usr/bin/multimonitor-wallpapers", 0o755)
