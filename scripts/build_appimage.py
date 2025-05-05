@@ -37,10 +37,13 @@ def create_appdir(appdir):
     os.makedirs(f"{appdir}/usr/share/applications", exist_ok=True)
     os.makedirs(f"{appdir}/usr/share/icons/hicolor/256x256/apps", exist_ok=True)
     
-    # Copy the application script
-    shutil.copy("multimonitor_wallpapers.py", f"{appdir}/usr/bin/multimonitor-wallpapers")
-    
-    # Make it executable
+    # Copy the application package (src/multimonitor_wallpapers)
+    shutil.copytree("src/multimonitor_wallpapers", f"{appdir}/usr/bin/multimonitor_wallpapers", dirs_exist_ok=True)
+
+    # Copy the entry script and ensure LF endings
+    with open("multimonitor_wallpapers.py", "rb") as src, open(f"{appdir}/usr/bin/multimonitor-wallpapers", "wb") as dst:
+        content = src.read().replace(b"\r\n", b"\n")
+        dst.write(content)
     os.chmod(f"{appdir}/usr/bin/multimonitor-wallpapers", 0o755)
 
 
@@ -103,7 +106,7 @@ def create_apprun(appdir):
     """Create AppRun executable script."""
     apprun_path = f"{appdir}/AppRun"
     
-    with open(apprun_path, 'w') as f:
+    with open(apprun_path, 'w', newline='\n') as f:
         f.write("""#!/bin/bash
 HERE="$(dirname "$(readlink -f "${0}")")"
 export PATH="${HERE}/usr/bin:${PATH}"
@@ -211,4 +214,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()
