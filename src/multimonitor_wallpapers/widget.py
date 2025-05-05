@@ -32,38 +32,34 @@ class MultiMonitorApp(QMainWindow):
         main_layout = QVBoxLayout()
         central_widget.setLayout(main_layout)
 
-        # Create file selection layout
+        # Detect monitors and dynamically create file inputs
+        monitors = self.getMonitorsGeometry()
+        self.file_inputs = []
         file_layout = QHBoxLayout()
-        self.file_inputs = [QLineEdit(self), QLineEdit(self)]
-        for file_input in self.file_inputs:
-            file_input.setPlaceholderText("Select an image file")
-            # Set style based on dark mode
+        for i, monitor in enumerate(monitors):
+            file_input = QLineEdit(self)
+            file_input.setPlaceholderText(f"Select image for {monitor['name']}")
             file_input.setStyleSheet(
                 "color: white; background-color: #353535;" if self.isSystemInDarkMode() else "color: black; background-color: white;")
             file_layout.addWidget(file_input)
+            self.file_inputs.append(file_input)
 
-            # Add browse button for each file input
-            browse_button = QPushButton("Browse", self)
+            browse_button = QPushButton(f"Browse", self)
             browse_button.clicked.connect(lambda checked, fi=file_input: self.browseFile(fi))
             file_layout.addWidget(browse_button)
-
         main_layout.addLayout(file_layout)
 
         # Create buttons layout (Apply, Cancel, Quit)
         button_layout = QHBoxLayout()
-
         ok_button = QPushButton("Apply", self)
         ok_button.clicked.connect(self.setBackground)
         button_layout.addWidget(ok_button)
-
         cancel_button = QPushButton("Cancel", self)
         cancel_button.clicked.connect(self.clearInputs)
         button_layout.addWidget(cancel_button)
-
         quit_button = QPushButton("Quit", self)
         quit_button.clicked.connect(self.close)
         button_layout.addWidget(quit_button)
-
         main_layout.addLayout(button_layout)
 
     def browseFile(self, file_input):
@@ -156,26 +152,45 @@ class MultiMonitorApp(QMainWindow):
 
         return output_path
 
+    def detectDesktopEnvironment(self):
+        # Try to detect Cinnamon or GNOME
+        desktop = os.environ.get("XDG_CURRENT_DESKTOP", "").lower()
+        if "cinnamon" in desktop:
+            return "cinnamon"
+        elif "gnome" in desktop or "ubuntu" in desktop:
+            return "gnome"
+        # fallback
+        return "unknown"
+
     def applyBackground(self):
         output_path = os.path.expanduser("~/.cinnamon/backgrounds/multiMonitorBackground.jpg")
+        desktop_env = self.detectDesktopEnvironment()
         try:
-            # Set the background for all monitors
+            if desktop_env == "cinnamon":
+                schema = "org.cinnamon.desktop.background"
+                options = "spanned"
+            elif desktop_env == "gnome":
+                schema = "org.gnome.desktop.background"
+                # GNOME does not always support 'spanned', fallback to 'zoom' or 'scaled'
+                options = "zoom"
+            else:
+                schema = "org.cinnamon.desktop.background"
+                options = "spanned"
             subprocess.check_call([
                 "gsettings", "set",
-                "org.cinnamon.desktop.background",
+                schema,
                 "picture-uri", f"file://{output_path}"
             ])
             subprocess.check_call([
                 "gsettings", "set",
-                "org.cinnamon.desktop.background",
-                "picture-options", "spanned"
+                schema,
+                "picture-options", options
             ])
-
-            # Refresh the Cinnamon settings
-            subprocess.check_call(["gsettings", "set", "org.cinnamon.desktop.background", "picture-uri", "''"])
-            subprocess.check_call(
-                ["gsettings", "set", "org.cinnamon.desktop.background", "picture-uri", f"file://{output_path}"])
-
+            # For Cinnamon, refresh settings
+            if desktop_env == "cinnamon":
+                subprocess.check_call(["gsettings", "set", schema, "picture-uri", "''"])
+                subprocess.check_call([
+                    "gsettings", "set", schema, "picture-uri", f"file://{output_path}"])
             return True
         except subprocess.CalledProcessError as e:
             print(f"Error applying background: {e}")
@@ -262,4 +277,4 @@ def main():
     sys.exit(app.exec())
 
 if __name__ == "__main__":
-    main() 
+    main()
