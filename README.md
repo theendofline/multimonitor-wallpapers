@@ -1,3 +1,6 @@
+[![Python Tests](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/python-tests.yml/badge.svg)](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/python-tests.yml)
+[![CodeQL Advanced](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/codeql.yml/badge.svg)](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/codeql.yml)
+[![Build and Release AppImage](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/release.yml/badge.svg)](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/release.yml)
 # Multi-Monitor Wallpapers App
 
 ## Description
