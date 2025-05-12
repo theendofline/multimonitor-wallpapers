@@ -202,36 +202,36 @@ def install_dependencies(appdir):
             shutil.copytree(source, target, dirs_exist_ok=True)
         else:
             shutil.copy2(source, target)
-    
+
     # Copy Python standard library
     print("Copying Python standard library...")
     stdlib_source = f"{venv_path}/lib/python3.12"
     stdlib_target = f"{appdir}/usr/lib/python3.12"
-    
+
     # Ensure the target directory exists
     os.makedirs(stdlib_target, exist_ok=True)
-    
+
     # Copy essential standard library modules
     for item in os.listdir(stdlib_source):
         # Skip site-packages and __pycache__ directories
         if item in ["site-packages", "__pycache__"]:
             continue
-        
+
         source = os.path.join(stdlib_source, item)
         target = os.path.join(stdlib_target, item)
-        
+
         if os.path.isdir(source):
             shutil.copytree(source, target, dirs_exist_ok=True)
         else:
             shutil.copy2(source, target)
-    
+
     # Also copy the Python binary
     python_bin_source = f"{venv_path}/bin/python3.12"
     python_bin_target = f"{appdir}/usr/bin/python3.12"
     if os.path.exists(python_bin_source):
         shutil.copy2(python_bin_source, python_bin_target)
         os.chmod(python_bin_target, 0o755)
-    
+
     # Copy necessary system libraries for Qt
     copy_system_libraries(appdir)
 
