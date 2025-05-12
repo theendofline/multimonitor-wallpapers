@@ -21,6 +21,3 @@ updates:
     schedule:
       interval: "daily"
     open-pull-requests-limit: 5
-    labels:
-      - "dependencies"
-      - "github-actions"
