@@ -47,6 +47,8 @@ def create_appdir(appdir):
 import os
 import sys
 import glob
+import shutil
+import subprocess
 
 # Get the directory where the AppImage is mounted
 appimage_mount = None
@@ -66,55 +68,40 @@ else:
                 appimage_mount = path
                 break
 
-# Add the application directory to the Python path
-app_dir = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, app_dir)
+# Print diagnostic information
+print("Python path:", sys.path)
+print("LD_LIBRARY_PATH:", os.environ.get('LD_LIBRARY_PATH', ''))
 
-# Set up Python paths
+# Check for required commands
+for cmd in ['gsettings', 'xrandr', 'convert']:
+    cmd_path = shutil.which(cmd)
+    print(f"{cmd} found at: {cmd_path}")
+
+# Add the AppImage's directories to Python's path
 if appimage_mount:
     # Get Python version
     python_version = '.'.join(sys.version.split('.')[:2])  # Get "3.12" from version
-
+    
     # Add site-packages to path
     site_packages = f"{appimage_mount}/usr/lib/python{python_version}/site-packages"
     if os.path.exists(site_packages) and site_packages not in sys.path:
         sys.path.insert(0, site_packages)
-
+    
     # Also add the usr/lib directory to path for finding dynamic libraries
-    os.environ['LD_LIBRARY_PATH'] = f"{appimage_mount}/usr/lib:" + os.environ.get('LD_LIBRARY_PATH', '')
-
+    lib_path = f"{appimage_mount}/usr/lib"
+    if os.path.exists(lib_path):
+        if 'LD_LIBRARY_PATH' in os.environ:
+            os.environ['LD_LIBRARY_PATH'] = f"{lib_path}:" + os.environ['LD_LIBRARY_PATH']
+        else:
+            os.environ['LD_LIBRARY_PATH'] = lib_path
+    
     # Set up Qt environment variables
-    os.environ['QT_PLUGIN_PATH'] = f"{appimage_mount}/usr/lib/python{python_version}/site-packages/PySide6/Qt/plugins"
-    os.environ['QML2_IMPORT_PATH'] = f"{appimage_mount}/usr/lib/python{python_version}/site-packages/PySide6/Qt/qml"
-    os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = f"{appimage_mount}/usr/lib/python{python_version}/site-packages/PySide6/Qt/plugins/platforms"
-
-# Debug paths if needed (uncomment if you have issues)
-print("Python path:", sys.path)
-print("LD_LIBRARY_PATH:", os.environ.get('LD_LIBRARY_PATH'))
-print("Checking for PySide6...")
-try:
-    import PySide6
-    print("PySide6 found at:", PySide6.__file__)
-except ImportError as e:
-    print("PySide6 import error:", e)
-
-print("Checking for PIL...")
-try:
-    from PIL import Image
-    print("PIL found at:", Image.__file__)
-except ImportError as e:
-    print("PIL import error:", e)
+    os.environ['QT_PLUGIN_PATH'] = f"{appimage_mount}/usr/lib/python{python_version}/site-packages/PySide6/plugins"
+    os.environ['QML2_IMPORT_PATH'] = f"{appimage_mount}/usr/lib/python{python_version}/site-packages/PySide6/qml"
 
 # Import and run the main function
-try:
-    from multimonitor_wallpapers import main
-    main()
-except ImportError as e:
-    print(f"Error importing main module: {e}")
-    print("Trying alternative import path...")
-    # Try importing directly from the current directory
-    import widget
-    widget.main()
+from multimonitor_wallpapers import main
+main()
 """
         )
 
@@ -188,51 +175,33 @@ def create_icon(appdir):
 
 
 def create_apprun(appdir):
-    """Create AppRun executable script."""
+    """Create the AppRun script."""
+    print("Creating AppRun script...")
     apprun_path = f"{appdir}/AppRun"
-
     with open(apprun_path, "w", newline="\n") as f:
         f.write(
-            r"""#!/bin/bash
+            """#!/bin/bash
+# AppRun script for MultiMonitor Wallpapers
+
 # Get the directory where the AppImage is mounted
 HERE="$(dirname "$(readlink -f "${0}")")"
 
-# Determine Python version dynamically
-PYTHON_VERSION=$(ls "${HERE}/usr/bin/" | grep -E "^python3\.[0-9]+$" | head -n 1)
-if [ -z "$PYTHON_VERSION" ]; then
-    PYTHON_VERSION="python3"
-fi
-
 # Set up environment variables
-export PATH="${HERE}/usr/bin:${PATH}"
 export PYTHONHOME="${HERE}/usr"
-export PYTHONPATH="${HERE}/usr/lib/${PYTHON_VERSION}/site-packages:${PYTHONPATH}"
+export PYTHONPATH="${HERE}/usr/lib/python3.12:${HERE}/usr/lib/python3.12/site-packages"
 export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
 export XDG_DATA_DIRS="${HERE}/usr/share:${XDG_DATA_DIRS}"
-export QT_PLUGIN_PATH="${HERE}/usr/lib/${PYTHON_VERSION}/site-packages/PySide6/Qt/plugins"
-export QML2_IMPORT_PATH="${HERE}/usr/lib/${PYTHON_VERSION}/site-packages/PySide6/Qt/qml"
-export QT_QPA_PLATFORM_PLUGIN_PATH="${HERE}/usr/lib/${PYTHON_VERSION}/site-packages/PySide6/Qt/plugins/platforms"
+export PATH="${HERE}/usr/bin:${PATH}"
 
-# For debugging (uncomment if needed)
-# echo "PYTHONHOME: ${PYTHONHOME}"
-# echo "PYTHONPATH: ${PYTHONPATH}"
-# echo "LD_LIBRARY_PATH: ${LD_LIBRARY_PATH}"
-# echo "Python version: ${PYTHON_VERSION}"
-# ls -la "${HERE}/usr/bin"
-# ls -la "${HERE}/usr/lib/${PYTHON_VERSION}"
+# Set up Qt environment variables
+export QT_PLUGIN_PATH="${HERE}/usr/lib/python3.12/site-packages/PySide6/plugins"
+export QML2_IMPORT_PATH="${HERE}/usr/lib/python3.12/site-packages/PySide6/qml"
 
-# Check if the bundled Python exists
-if [ -f "${HERE}/usr/bin/${PYTHON_VERSION}" ]; then
-    # Use the bundled Python interpreter
-    exec "${HERE}/usr/bin/${PYTHON_VERSION}" "${HERE}/usr/bin/multimonitor-wallpapers"
-else
-    echo "Error: Python interpreter not found in AppImage"
-    exit 1
-fi
+# Execute the application
+exec "${HERE}/usr/bin/python3" "${HERE}/usr/bin/multimonitor-wallpapers" "$@"
 """
         )
-
-    # Make it executable
+    # Make the AppRun script executable
     os.chmod(apprun_path, 0o755)
 
 
@@ -546,6 +515,47 @@ def copy_system_libraries(appdir):
         # Continue despite errors
 
 
+def copy_system_commands(appdir):
+    """Copy system commands needed for the application to work."""
+    print("Copying system commands...")
+    target_bin = f"{appdir}/usr/bin"
+    target_lib = f"{appdir}/usr/lib"
+    os.makedirs(target_bin, exist_ok=True)
+    os.makedirs(target_lib, exist_ok=True)
+
+    # List of commands to copy
+    commands = ["gsettings", "xrandr", "convert"]
+    
+    for cmd in commands:
+        # Find the command path
+        cmd_path = shutil.which(cmd)
+        if cmd_path:
+            print(f"Copying {cmd} from {cmd_path}")
+            try:
+                shutil.copy2(cmd_path, target_bin)
+                # Make it executable
+                os.chmod(os.path.join(target_bin, cmd), 0o755)
+                
+                # Copy shared libraries for this command
+                try:
+                    ldd_output = subprocess.check_output(["ldd", cmd_path], text=True)
+                    for line in ldd_output.splitlines():
+                        if "=>" in line and "not found" not in line:
+                            lib_path = line.split("=>")[1].strip().split()[0]
+                            if lib_path and os.path.exists(lib_path) and not lib_path.startswith("/lib"):
+                                lib_name = os.path.basename(lib_path)
+                                target_path = os.path.join(target_lib, lib_name)
+                                if not os.path.exists(target_path):
+                                    print(f"  Copying library: {lib_path}")
+                                    shutil.copy2(lib_path, target_lib)
+                except Exception as e:
+                    print(f"  Warning: Failed to copy libraries for {cmd}: {e}")
+            except Exception as e:
+                print(f"Warning: Failed to copy {cmd}: {e}")
+        else:
+            print(f"Warning: Command {cmd} not found in PATH")
+
+
 def download_appimagetool():
     """Download appimagetool if it doesn't exist."""
     appimagetool_path = Path("appimagetool-x86_64.AppImage")
@@ -591,6 +601,9 @@ def main():
 
         # Install dependencies
         install_dependencies(appdir)
+        
+        # Copy system commands
+        copy_system_commands(appdir)
 
         # Build AppImage
         output_dir = "dist"
