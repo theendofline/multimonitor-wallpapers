@@ -46,25 +46,75 @@ def create_appdir(appdir):
 
 import os
 import sys
+import glob
+
+# Get the directory where the AppImage is mounted
+appimage_mount = None
+if os.environ.get('APPIMAGE'):
+    appimage_mount = '/tmp/.mount_' + os.path.basename(os.environ['APPIMAGE']).split('.')[0]
+else:
+    # When running from extracted AppImage or during development
+    for path in glob.glob('/tmp/.mount_*'):
+        if os.path.exists(path):
+            appimage_mount = path
+            break
+
+    # Check for extract-and-run mode
+    if not appimage_mount:
+        for path in glob.glob('/tmp/appimage_extracted_*'):
+            if os.path.exists(path):
+                appimage_mount = path
+                break
 
 # Add the application directory to the Python path
 app_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, app_dir)
 
-# Ensure Python can find modules in site-packages
-python_version = '.'.join(sys.version.split('.')[:2])  # Get "3.12" from version
-site_packages = f"/tmp/.mount_*/usr/lib/python{python_version}/site-packages"
-import glob
-for sp in glob.glob(site_packages):
-    if sp not in sys.path and os.path.exists(sp):
-        sys.path.insert(0, sp)
-        break
+# Set up Python paths
+if appimage_mount:
+    # Get Python version
+    python_version = '.'.join(sys.version.split('.')[:2])  # Get "3.12" from version
+
+    # Add site-packages to path
+    site_packages = f"{appimage_mount}/usr/lib/python{python_version}/site-packages"
+    if os.path.exists(site_packages) and site_packages not in sys.path:
+        sys.path.insert(0, site_packages)
+
+    # Also add the usr/lib directory to path for finding dynamic libraries
+    os.environ['LD_LIBRARY_PATH'] = f"{appimage_mount}/usr/lib:" + os.environ.get('LD_LIBRARY_PATH', '')
+
+    # Set up Qt environment variables
+    os.environ['QT_PLUGIN_PATH'] = f"{appimage_mount}/usr/lib/python{python_version}/site-packages/PySide6/Qt/plugins"
+    os.environ['QML2_IMPORT_PATH'] = f"{appimage_mount}/usr/lib/python{python_version}/site-packages/PySide6/Qt/qml"
+    os.environ['QT_QPA_PLATFORM_PLUGIN_PATH'] = f"{appimage_mount}/usr/lib/python{python_version}/site-packages/PySide6/Qt/plugins/platforms"
+
+# Debug paths if needed (uncomment if you have issues)
+print("Python path:", sys.path)
+print("LD_LIBRARY_PATH:", os.environ.get('LD_LIBRARY_PATH'))
+print("Checking for PySide6...")
+try:
+    import PySide6
+    print("PySide6 found at:", PySide6.__file__)
+except ImportError as e:
+    print("PySide6 import error:", e)
+
+print("Checking for PIL...")
+try:
+    from PIL import Image
+    print("PIL found at:", Image.__file__)
+except ImportError as e:
+    print("PIL import error:", e)
 
 # Import and run the main function
-from multimonitor_wallpapers import main
-
-if __name__ == "__main__":
+try:
+    from multimonitor_wallpapers import main
     main()
+except ImportError as e:
+    print(f"Error importing main module: {e}")
+    print("Trying alternative import path...")
+    # Try importing directly from the current directory
+    import widget
+    widget.main()
 """
         )
 
@@ -224,12 +274,42 @@ def install_dependencies(appdir):
     # Install packages into the temporary venv
     pip_cmd = os.path.join(temp_venv, "bin", "pip")
 
-    # First install uv
-    run_command([pip_cmd, "install", "uv"])
+    # Install dependencies directly with pip
+    print("Installing dependencies with pip...")
+    run_command([pip_cmd, "install", "--upgrade", "pip"])
+    run_command([pip_cmd, "install", "PySide6==6.9.0", "pillow==11.2.1"])
 
-    # Then use uv to install our dependencies
-    uv_cmd = os.path.join(temp_venv, "bin", "uv")
-    run_command([uv_cmd, "pip", "install", "PySide6==6.9.0", "pillow==11.2.1"])
+    # Verify Pillow is properly installed
+    print("Verifying Pillow installation...")
+    try:
+        verification_result = run_command(
+            [
+                os.path.join(temp_venv, "bin", "python"),
+                "-c",
+                "from PIL import Image; print('Pillow is installed correctly')",
+            ]
+        )
+        print(verification_result)
+    except Exception as e:
+        print(f"Warning: Pillow verification failed: {e}")
+        print("Attempting to install Pillow again with different method...")
+        run_command([pip_cmd, "install", "--force-reinstall", "pillow"])
+
+    # Verify PySide6 is properly installed
+    print("Verifying PySide6 installation...")
+    try:
+        verification_result = run_command(
+            [
+                os.path.join(temp_venv, "bin", "python"),
+                "-c",
+                "from PySide6 import QtCore; print('PySide6 is installed correctly')",
+            ]
+        )
+        print(verification_result)
+    except Exception as e:
+        print(f"Warning: PySide6 verification failed: {e}")
+        print("Attempting to install PySide6 again with different method...")
+        run_command([pip_cmd, "install", "--force-reinstall", "PySide6"])
 
     # Get the site-packages directory from the venv
     venv_site_packages = os.path.join(temp_venv, "lib", f"python{python_version}", "site-packages")
@@ -352,37 +432,115 @@ def copy_system_libraries(appdir):
         # Use ldd to find dependencies of PySide6's core libraries
         qt_libs_path = f"{appdir}/usr/lib/python3.12/site-packages/PySide6"
         if os.path.exists(qt_libs_path):
-            core_so = os.path.join(qt_libs_path, "libpyside6.abi3.so.6.9")
-            if not os.path.exists(core_so):
-                # Try to find any .so file if the specific one doesn't exist
-                so_files = [f for f in os.listdir(qt_libs_path) if f.endswith(".so")]
-                if so_files:
-                    core_so = os.path.join(qt_libs_path, so_files[0])
-                else:
-                    print("Warning: Could not find PySide6 core library")
-                    return
+            print("Found PySide6 directory, looking for .so files...")
+            # Find all .so files in PySide6 directory
+            so_files = []
+            for root, _dirs, files in os.walk(qt_libs_path):
+                for file in files:
+                    if file.endswith(".so"):
+                        so_files.append(os.path.join(root, file))
 
-            print(f"Finding dependencies for: {core_so}")
-            ldd_output = run_command(["ldd", core_so])
+            if not so_files:
+                print("Warning: No .so files found in PySide6 directory")
+                return
 
-            # Parse ldd output to find libraries
-            for line in ldd_output.splitlines():
-                if "=>" in line and "not found" not in line:
-                    lib_path = line.split("=>")[1].strip().split()[0]
-                    if lib_path and lib_path.startswith("/"):
-                        lib_name = os.path.basename(lib_path)
-                        # Skip system libraries that should be on all systems
-                        if not (
-                            lib_name.startswith("libc.so")
-                            or lib_name.startswith("libstdc++.so")
-                            or lib_name.startswith("libdl.so")
-                            or lib_name.startswith("libm.so")
-                            or lib_name.startswith("libpthread.so")
-                        ):
-                            target = os.path.join(target_lib, lib_name)
-                            if not os.path.exists(target):
-                                print(f"Copying {lib_path} to {target}")
-                                shutil.copy2(lib_path, target)
+            # Process each .so file
+            for so_file in so_files:
+                print(f"Finding dependencies for: {so_file}")
+                try:
+                    ldd_output = run_command(["ldd", so_file])
+
+                    # Parse ldd output to find libraries
+                    for line in ldd_output.splitlines():
+                        if "=>" in line and "not found" not in line:
+                            lib_path = line.split("=>")[1].strip().split()[0]
+                            if lib_path and lib_path.startswith("/"):
+                                lib_name = os.path.basename(lib_path)
+                                # Skip system libraries that should be on all systems
+                                if not (
+                                    lib_name.startswith("libc.so")
+                                    or lib_name.startswith("libstdc++.so")
+                                    or lib_name.startswith("libdl.so")
+                                    or lib_name.startswith("libm.so")
+                                    or lib_name.startswith("libpthread.so")
+                                ):
+                                    target = os.path.join(target_lib, lib_name)
+                                    if not os.path.exists(target):
+                                        print(f"Copying {lib_path} to {target}")
+                                        shutil.copy2(lib_path, target)
+                except Exception as e:
+                    print(f"Warning: Error processing {so_file}: {e}")
+
+        # Check for Pillow dependencies
+        pillow_path = f"{appdir}/usr/lib/python3.12/site-packages/PIL"
+        if os.path.exists(pillow_path):
+            print("Finding Pillow dependencies...")
+            # Find .so files in Pillow directory
+            so_files = []
+            for root, _dirs, files in os.walk(pillow_path):
+                for file in files:
+                    if file.endswith(".so"):
+                        so_files.append(os.path.join(root, file))
+
+            # Process each .so file
+            for so_file in so_files:
+                print(f"Finding dependencies for: {so_file}")
+                try:
+                    ldd_output = run_command(["ldd", so_file])
+
+                    # Parse ldd output to find libraries
+                    for line in ldd_output.splitlines():
+                        if "=>" in line and "not found" not in line:
+                            lib_path = line.split("=>")[1].strip().split()[0]
+                            if lib_path and lib_path.startswith("/"):
+                                lib_name = os.path.basename(lib_path)
+                                # Skip system libraries that should be on all systems
+                                if not (
+                                    lib_name.startswith("libc.so")
+                                    or lib_name.startswith("libstdc++.so")
+                                    or lib_name.startswith("libdl.so")
+                                    or lib_name.startswith("libm.so")
+                                    or lib_name.startswith("libpthread.so")
+                                ):
+                                    target = os.path.join(target_lib, lib_name)
+                                    if not os.path.exists(target):
+                                        print(f"Copying {lib_path} to {target}")
+                                        shutil.copy2(lib_path, target)
+                except Exception as e:
+                    print(f"Warning: Error processing {so_file}: {e}")
+        else:
+            print("Warning: Could not find Pillow directory")
+
+        # Copy additional Qt dependencies that might be needed
+        print("Copying additional Qt dependencies...")
+        qt_libs = [
+            "/usr/lib/x86_64-linux-gnu/libQt5Core.so.5",
+            "/usr/lib/x86_64-linux-gnu/libQt5Gui.so.5",
+            "/usr/lib/x86_64-linux-gnu/libQt5Widgets.so.5",
+            "/usr/lib/x86_64-linux-gnu/libQt5DBus.so.5",
+            "/usr/lib/x86_64-linux-gnu/libQt5XcbQpa.so.5",
+            "/usr/lib/x86_64-linux-gnu/libxcb.so.1",
+            "/usr/lib/x86_64-linux-gnu/libX11.so.6",
+            "/usr/lib/x86_64-linux-gnu/libXext.so.6",
+            "/usr/lib/x86_64-linux-gnu/libXrender.so.1",
+            "/usr/lib/x86_64-linux-gnu/libICE.so.6",
+            "/usr/lib/x86_64-linux-gnu/libSM.so.6",
+            "/usr/lib/x86_64-linux-gnu/libGL.so.1",
+            "/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0",
+            "/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0",
+            "/usr/lib/x86_64-linux-gnu/libpango-1.0.so.0",
+            "/usr/lib/x86_64-linux-gnu/libcairo.so.2",
+            "/usr/lib/x86_64-linux-gnu/libfontconfig.so.1",
+        ]
+
+        for lib_path in qt_libs:
+            if os.path.exists(lib_path):
+                lib_name = os.path.basename(lib_path)
+                target = os.path.join(target_lib, lib_name)
+                if not os.path.exists(target):
+                    print(f"Copying {lib_path} to {target}")
+                    shutil.copy2(lib_path, target)
+
     except Exception as e:
         print(f"Warning: Error copying system libraries: {e}")
         # Continue despite errors
@@ -440,6 +598,55 @@ def main():
         output_path = os.path.abspath(f"{output_dir}/MultiMonitor-x86_64.AppImage")
 
         build_appimage(appdir, output_path)
+
+        # Verify the AppImage has all required modules
+        print("Verifying AppImage contents...")
+        # Create a simple test script
+        test_script = os.path.join(temp_dir, "test_imports.py")
+        with open(test_script, "w") as f:
+            f.write(
+                """
+import sys
+print("Python version:", sys.version)
+print("Python path:", sys.path)
+
+try:
+    from PIL import Image
+    print("PIL imported successfully")
+except ImportError as e:
+    print("PIL import error:", e)
+
+try:
+    from PySide6 import QtCore
+    print("PySide6 imported successfully")
+except ImportError as e:
+    print("PySide6 import error:", e)
+"""
+            )
+
+        # Make the AppImage executable
+        os.chmod(output_path, 0o755)
+
+        # Extract the AppImage to a temporary directory for testing
+        extract_dir = os.path.join(temp_dir, "extracted_appimage")
+        os.makedirs(extract_dir, exist_ok=True)
+        try:
+            print("Extracting AppImage for testing...")
+            run_command([output_path, "--appimage-extract"], cwd=extract_dir)
+
+            # Run the test script with the extracted AppImage's Python
+            print("Testing imports with extracted AppImage...")
+            python_binary = os.path.join(extract_dir, "squashfs-root", "usr", "bin", "python3")
+            if os.path.exists(python_binary):
+                try:
+                    run_command([python_binary, test_script])
+                except Exception as e:
+                    print(f"Warning: Test script execution failed: {e}")
+            else:
+                print("Warning: Could not find Python binary in extracted AppImage")
+        except Exception as e:
+            print(f"Warning: AppImage extraction failed: {e}")
+            print("Skipping verification tests")
 
     print("AppImage build completed successfully!")
 
