@@ -49,8 +49,8 @@ jobs:
           # List files inside the dist directory
           ls -la dist/
           # Check if the AppImage was created properly
-          if [ ! -f dist/MultiMonitor-x86_64.AppImage ]; then
-            echo "AppImage build failed"
+          if [ ! -f dist/*.AppImage ]; then
+            echo "AppImage build failed: No AppImage file found in dist/"
             exit 1
           fi
 
