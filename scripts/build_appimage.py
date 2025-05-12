@@ -81,12 +81,12 @@ for cmd in ['gsettings', 'xrandr', 'convert']:
 if appimage_mount:
     # Get Python version
     python_version = '.'.join(sys.version.split('.')[:2])  # Get "3.12" from version
-    
+
     # Add site-packages to path
     site_packages = f"{appimage_mount}/usr/lib/python{python_version}/site-packages"
     if os.path.exists(site_packages) and site_packages not in sys.path:
         sys.path.insert(0, site_packages)
-    
+
     # Also add the usr/lib directory to path for finding dynamic libraries
     lib_path = f"{appimage_mount}/usr/lib"
     if os.path.exists(lib_path):
@@ -94,7 +94,7 @@ if appimage_mount:
             os.environ['LD_LIBRARY_PATH'] = f"{lib_path}:" + os.environ['LD_LIBRARY_PATH']
         else:
             os.environ['LD_LIBRARY_PATH'] = lib_path
-    
+
     # Set up Qt environment variables
     os.environ['QT_PLUGIN_PATH'] = f"{appimage_mount}/usr/lib/python{python_version}/site-packages/PySide6/plugins"
     os.environ['QML2_IMPORT_PATH'] = f"{appimage_mount}/usr/lib/python{python_version}/site-packages/PySide6/qml"
@@ -525,7 +525,7 @@ def copy_system_commands(appdir):
 
     # List of commands to copy
     commands = ["gsettings", "xrandr", "convert"]
-    
+
     for cmd in commands:
         # Find the command path
         cmd_path = shutil.which(cmd)
@@ -535,14 +535,18 @@ def copy_system_commands(appdir):
                 shutil.copy2(cmd_path, target_bin)
                 # Make it executable
                 os.chmod(os.path.join(target_bin, cmd), 0o755)
-                
+
                 # Copy shared libraries for this command
                 try:
                     ldd_output = subprocess.check_output(["ldd", cmd_path], text=True)
                     for line in ldd_output.splitlines():
                         if "=>" in line and "not found" not in line:
                             lib_path = line.split("=>")[1].strip().split()[0]
-                            if lib_path and os.path.exists(lib_path) and not lib_path.startswith("/lib"):
+                            if (
+                                lib_path
+                                and os.path.exists(lib_path)
+                                and not lib_path.startswith("/lib")
+                            ):
                                 lib_name = os.path.basename(lib_path)
                                 target_path = os.path.join(target_lib, lib_name)
                                 if not os.path.exists(target_path):
@@ -601,7 +605,7 @@ def main():
 
         # Install dependencies
         install_dependencies(appdir)
-        
+
         # Copy system commands
         copy_system_commands(appdir)
 
