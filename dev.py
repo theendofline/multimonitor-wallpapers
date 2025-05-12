@@ -26,7 +26,7 @@ def setup_env():
     """Set up development environment using uv."""
     if not os.path.exists(".venv"):
         run_command(["uv", "venv"])
-    
+
     run_command(["uv", "pip", "install", "-e", ".[dev]"])
     print("Development environment set up successfully.")
 
@@ -35,13 +35,13 @@ def lint():
     """Run linting tools."""
     print("Running ruff...")
     run_command(["ruff", "check", "."])
-    
+
     print("Running black in check mode...")
     run_command(["black", "--check", "."])
-    
+
     print("Running mypy...")
     run_command(["mypy", "widget.py"])
-    
+
     print("All linting checks passed!")
 
 
@@ -49,10 +49,10 @@ def format_code():
     """Format code with ruff and black."""
     print("Formatting with ruff...")
     run_command(["ruff", "check", "--fix", "."])
-    
+
     print("Formatting with black...")
     run_command(["black", "."])
-    
+
     print("Code formatting complete!")
 
 
@@ -73,29 +73,29 @@ def clean():
         "dist",
         "*.egg-info",
     ]
-    
+
     for directory in directories:
         run_command(["rm", "-rf", directory])
-    
+
     print("Cleaned up build artifacts and cache files.")
 
 
 def build_appimage():
     """Build an AppImage for distribution."""
     print("Building AppImage...")
-    
+
     # Make sure the scripts directory exists
     if not os.path.exists("scripts"):
         os.makedirs("scripts")
-    
+
     # Check if the build script exists
     if not os.path.exists("scripts/build_appimage.py"):
         print("Error: scripts/build_appimage.py not found")
         return
-    
+
     # Run the build script
     run_command(["python", "scripts/build_appimage.py"])
-    
+
     print("AppImage build complete. Check dist/ directory for the output file.")
 
 
@@ -103,16 +103,16 @@ def main():
     """Parse arguments and run the requested command."""
     parser = argparse.ArgumentParser(description="Development helper script")
     subparsers = parser.add_subparsers(dest="command", help="Command to run")
-    
+
     subparsers.add_parser("setup", help="Set up development environment")
     subparsers.add_parser("lint", help="Run linting tools")
     subparsers.add_parser("format", help="Format code")
     subparsers.add_parser("test", help="Run tests")
     subparsers.add_parser("clean", help="Clean build artifacts")
     subparsers.add_parser("appimage", help="Build AppImage for distribution")
-    
+
     args = parser.parse_args()
-    
+
     if args.command == "setup":
         setup_env()
     elif args.command == "lint":
@@ -130,4 +130,4 @@ def main():
 
 
 if __name__ == "__main__":
-    main() 
+    main()

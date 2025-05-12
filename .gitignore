@@ -24,6 +24,7 @@ Makefile*
 *.swo
 *~
 .DS_Store
+.idea/
 
 # Build outputs
 /build/

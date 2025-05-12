@@ -1,1 +1,1 @@
-# Tests for multimonitor-wallpapers 
+# Tests for multimonitor_wallpapers

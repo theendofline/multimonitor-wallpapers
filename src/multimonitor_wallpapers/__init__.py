@@ -8,4 +8,4 @@ __version__ = "0.1.0"
 
 from .widget import main  # noqa
 
-__all__ = ["main"] 
+__all__ = ["main"]

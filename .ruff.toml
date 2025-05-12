@@ -2,6 +2,13 @@
 
 target-version = "py312"
 line-length = 100
+
+# Per-file ignores
+[lint.per-file-ignores]
+"__init__.py" = ["N999"]
+"tests/__init__.py" = ["N999"]
+
+[lint]
 select = ["E", "F", "I", "W", "N", "B", "C4", "ARG", "SIM"]
 ignore = []
 exclude = [
@@ -13,10 +20,10 @@ exclude = [
     "dist",
 ]
 
-[isort]
+[lint.isort]
 known-first-party = ["widget"]
 known-third-party = ["PySide6", "PIL"]
 
-[flake8-quotes]
+[lint.flake8-quotes]
 docstring-quotes = "double"
 inline-quotes = "single" 
