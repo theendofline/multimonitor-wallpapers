@@ -1,3 +1,6 @@
+[![Python Tests](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/python-tests.yml/badge.svg)](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/python-tests.yml)
+[![CodeQL Advanced](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/codeql.yml/badge.svg)](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/codeql.yml)
+[![Build and Release AppImage](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/release.yml/badge.svg)](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/release.yml)
 # Multi-Monitor Wallpapers App
 
 ## Description
@@ -15,7 +18,7 @@ The Multi-Monitor Wallpapers App is a Python-based desktop application designed 
 
 ## Requirements
 
-- Python 3.6+
+- Python 3.12+
 - PySide6
 - Pillow (PIL)
 - Cinnamon desktop environment
@@ -33,6 +36,22 @@ The Multi-Monitor Wallpapers App is a Python-based desktop application designed 
    ```
    pip install -r requirements.txt
    ```
+
+### Using the AppImage (Linux)
+
+For Linux users, you can download and use the AppImage:
+
+1. Download the latest AppImage from the [Releases](https://github.com/yourusername/multi-monitor-wallpapers-app/releases) page.
+2. Make it executable:
+   ```
+   chmod +x MultiMonitor-*.AppImage
+   ```
+3. Run the application:
+   ```
+   ./MultiMonitor-*.AppImage
+   ```
+
+The AppImage is self-contained and does not require installation. It should work on most modern Linux distributions.
 
 ## Usage
 
@@ -61,6 +80,76 @@ To modify the UI:
 
 1. Edit the `initUI` method in the `MultiMonitorApp` class.
 2. If using Qt Designer, edit the `form.ui` file and regenerate `ui_form.py`.
+
+### Developer Setup
+
+1. Clone the repository and navigate to the project directory.
+
+2. Install Just (recommended):
+   ```
+   # Linux/macOS with homebrew
+   brew install just
+
+   # Linux with apt
+   sudo apt install just
+
+   # With cargo
+   cargo install just
+   
+   # Or use our helper script
+   curl -LsSf https://just.systems/install.sh | bash -s -- --to ~/.local/bin
+   ```
+
+   If you don't want to install Just, you can use the usual Python tools directly.
+
+3. Install uv (if not already installed):
+   ```
+   curl -LsSf https://astral.sh/uv/install.sh | sh
+   ```
+
+4. Set up the development environment:
+   ```
+   just setup
+   ```
+   
+   This will:
+   - Create a virtual environment (.venv)
+   - Install the package in development mode with all dev dependencies
+
+5. Activate the virtual environment:
+   ```
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+   ```
+
+### Development Workflow
+
+You can use the provided commands with `just`:
+
+```bash
+# List all available commands
+just
+
+# Run the application
+just run
+
+# Development tools
+just lint        # Run linting checks
+just format      # Format code
+just test        # Run tests
+just clean       # Clean build artifacts
+just icon        # Generate application icon
+just appimage    # Build AppImage for distribution
+
+# Create a new release (e.g., "0.1.0")
+just release 0.1.0
+```
+
+### Package Structure
+
+- `widget.py`: Main application code
+- `setup.py` and `pyproject.toml`: Packaging configuration
+- `tests/`: Test directory
+- `.github/workflows/`: CI configuration
 
 ## Contributing
 
@@ -102,3 +191,37 @@ However, if you distribute modified versions of the software, you must:
 - Implement drag-and-drop functionality for image selection
 - Add preview functionality for the combined wallpaper
 - Implement wallpaper cycling/slideshow feature
+
+## Building and Distribution
+
+### Building an AppImage
+
+To build an AppImage for distribution:
+
+1. Make sure you have the required dependencies:
+   ```
+   sudo apt-get install libfuse2 desktop-file-utils libglib2.0-bin
+   ```
+
+2. Build the AppImage:
+   ```
+   just appimage
+   ```
+
+3. The AppImage will be created in the `dist/` directory.
+
+### Automated Builds with GitHub Actions
+
+The project includes GitHub Actions workflows to automatically:
+
+1. Run tests and linting checks on every push and pull request
+2. Build and publish an AppImage when a new tag is created
+
+To create a new release:
+
+```bash
+# Create and push a release tag
+just release 0.2.0
+```
+
+GitHub Actions will automatically build the AppImage and create a release.

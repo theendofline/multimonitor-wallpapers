@@ -1,0 +1,11 @@
+[python]
+# Use Python 3.12 as the default Python version
+default_version = "3.12"
+
+[venv]
+# Use .venv as the default virtual environment directory
+venv_dir = ".venv"
+
+[pip]
+# Always use the latest pip version
+upgrade_pip = true 
