@@ -44,14 +44,30 @@ def create_appdir(appdir):
         dirs_exist_ok=True,
     )
 
-    # Copy the entry script and ensure LF endings
-    with (
-        open("multimonitor_wallpapers.py", "rb") as src,
-        open(f"{appdir}/usr/bin/multimonitor-wallpapers", "wb") as dst,
-    ):
-        content = src.read().replace(b"\r\n", b"\n")
-        dst.write(content)
-    os.chmod(f"{appdir}/usr/bin/multimonitor-wallpapers", 0o755)
+    # Create a Python entry script that uses the shebang line
+    entry_script = f"{appdir}/usr/bin/multimonitor-wallpapers"
+    with open(entry_script, "w", newline="\n") as f:
+        f.write(
+            """#!/usr/bin/env python3
+# Entry point for MultiMonitor Wallpapers application
+
+import os
+import sys
+
+# Add the application directory to the Python path
+app_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.insert(0, app_dir)
+
+# Import and run the main function
+from multimonitor_wallpapers import main
+
+if __name__ == "__main__":
+    main()
+"""
+        )
+
+    # Make it executable
+    os.chmod(entry_script, 0o755)
 
 
 def create_desktop_file(appdir):
@@ -123,8 +139,8 @@ HERE="$(dirname "$(readlink -f "${0}")")"
 
 # Set up environment variables
 export PATH="${HERE}/usr/bin:${PATH}"
-export PYTHONPATH="${HERE}/usr/lib/python3.12/site-packages:${PYTHONPATH}"
 export PYTHONHOME="${HERE}/usr"
+export PYTHONPATH="${HERE}/usr/lib/python3.12/site-packages:${PYTHONPATH}"
 export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
 export XDG_DATA_DIRS="${HERE}/usr/share:${XDG_DATA_DIRS}"
 export QT_PLUGIN_PATH="${HERE}/usr/lib/python3.12/site-packages/PySide6/Qt/plugins"
@@ -134,10 +150,16 @@ export QT_QPA_PLATFORM_PLUGIN_PATH="${HERE}/usr/lib/python3.12/site-packages/PyS
 # Log environment for debugging (uncomment if needed)
 # echo "LD_LIBRARY_PATH: ${LD_LIBRARY_PATH}"
 # echo "PYTHONPATH: ${PYTHONPATH}"
-# echo "QT_PLUGIN_PATH: ${QT_PLUGIN_PATH}"
+# echo "PYTHONHOME: ${PYTHONHOME}"
 
-# Launch the application
-"${HERE}/usr/bin/multimonitor-wallpapers" "$@"
+# Check if the bundled Python exists
+if [ -f "${HERE}/usr/bin/python3.12" ]; then
+    # Use the bundled Python interpreter
+    exec "${HERE}/usr/bin/python3.12" "${HERE}/usr/bin/multimonitor-wallpapers"
+else
+    # Fallback to the script directly
+    exec "${HERE}/usr/bin/multimonitor-wallpapers" "$@"
+fi
 """
         )
 
@@ -180,7 +202,36 @@ def install_dependencies(appdir):
             shutil.copytree(source, target, dirs_exist_ok=True)
         else:
             shutil.copy2(source, target)
-
+    
+    # Copy Python standard library
+    print("Copying Python standard library...")
+    stdlib_source = f"{venv_path}/lib/python3.12"
+    stdlib_target = f"{appdir}/usr/lib/python3.12"
+    
+    # Ensure the target directory exists
+    os.makedirs(stdlib_target, exist_ok=True)
+    
+    # Copy essential standard library modules
+    for item in os.listdir(stdlib_source):
+        # Skip site-packages and __pycache__ directories
+        if item in ["site-packages", "__pycache__"]:
+            continue
+        
+        source = os.path.join(stdlib_source, item)
+        target = os.path.join(stdlib_target, item)
+        
+        if os.path.isdir(source):
+            shutil.copytree(source, target, dirs_exist_ok=True)
+        else:
+            shutil.copy2(source, target)
+    
+    # Also copy the Python binary
+    python_bin_source = f"{venv_path}/bin/python3.12"
+    python_bin_target = f"{appdir}/usr/bin/python3.12"
+    if os.path.exists(python_bin_source):
+        shutil.copy2(python_bin_source, python_bin_target)
+        os.chmod(python_bin_target, 0o755)
+    
     # Copy necessary system libraries for Qt
     copy_system_libraries(appdir)
 
