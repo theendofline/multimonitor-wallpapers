@@ -133,7 +133,7 @@ def create_apprun(appdir):
 
     with open(apprun_path, "w", newline="\n") as f:
         f.write(
-            """#!/bin/bash
+            r"""#!/bin/bash
 # Get the directory where the AppImage is mounted
 HERE="$(dirname "$(readlink -f "${0}")")"
 
@@ -181,75 +181,75 @@ def install_dependencies(appdir):
     # Find the system Python installation
     python_version = "3.12"
     python_cmd = f"python{python_version}"
-    
+
     # Get Python's site-packages and stdlib directories
     print("Detecting Python paths...")
-    python_paths = run_command([
-        python_cmd, "-c", 
-        "import sys, os; "
-        "print(sys.prefix); "
-        "print(os.path.dirname(os.__file__)); "
-        "print([p for p in sys.path if p.endswith('site-packages')][0])"
-    ]).strip().split('\n')
-    
+    python_paths = (
+        run_command(
+            [
+                python_cmd,
+                "-c",
+                "import sys, os; "
+                "print(sys.prefix); "
+                "print(os.path.dirname(os.__file__)); "
+                "print([p for p in sys.path if p.endswith('site-packages')][0])",
+            ]
+        )
+        .strip()
+        .split("\n")
+    )
+
     sys_prefix = python_paths[0]
     stdlib_path = python_paths[1]
     site_packages_path = python_paths[2]
-    
+
     print(f"Python prefix: {sys_prefix}")
     print(f"Python stdlib: {stdlib_path}")
     print(f"Python site-packages: {site_packages_path}")
-    
+
     # Create a temporary virtual environment for installing our packages
     temp_venv = os.path.join(os.path.dirname(appdir), "temp_venv")
     run_command([python_cmd, "-m", "venv", temp_venv])
-    
+
     # Install packages into the temporary venv
     pip_cmd = os.path.join(temp_venv, "bin", "pip")
-    
+
     # First install uv
     run_command([pip_cmd, "install", "uv"])
-    
+
     # Then use uv to install our dependencies
     uv_cmd = os.path.join(temp_venv, "bin", "uv")
-    run_command([
-        uv_cmd, "pip", "install", 
-        "PySide6==6.9.0",
-        "pillow==11.2.1"
-    ])
-    
+    run_command([uv_cmd, "pip", "install", "PySide6==6.9.0", "pillow==11.2.1"])
+
     # Get the site-packages directory from the venv
     venv_site_packages = os.path.join(temp_venv, "lib", f"python{python_version}", "site-packages")
-    
+
     # Create target directories in AppDir
     target_lib = os.path.join(appdir, "usr", "lib")
     target_python_lib = os.path.join(target_lib, f"python{python_version}")
     target_site_packages = os.path.join(target_python_lib, "site-packages")
     target_bin = os.path.join(appdir, "usr", "bin")
-    
+
     os.makedirs(target_python_lib, exist_ok=True)
     os.makedirs(target_site_packages, exist_ok=True)
     os.makedirs(target_bin, exist_ok=True)
-    
+
     # Copy Python binary
     python_binary = run_command(["which", python_cmd]).strip()
     shutil.copy2(python_binary, os.path.join(target_bin, os.path.basename(python_binary)))
-    
+
     # Make a symbolic link from python3 to the specific version
-    os.symlink(
-        os.path.basename(python_binary),
-        os.path.join(target_bin, "python3")
-    )
-    
+    os.symlink(os.path.basename(python_binary), os.path.join(target_bin, "python3"))
+
     # Copy the Python standard library
     print("Copying Python standard library...")
     for item in os.listdir(stdlib_path):
         if item in ["__pycache__", "site-packages", "dist-packages"]:
             continue
-        
+
         source = os.path.join(stdlib_path, item)
         target = os.path.join(target_python_lib, item)
-        
+
         try:
             if os.path.isdir(source):
                 shutil.copytree(source, target, symlinks=True, dirs_exist_ok=True)
@@ -257,7 +257,7 @@ def install_dependencies(appdir):
                 shutil.copy2(source, target)
         except Exception as e:
             print(f"Warning: Failed to copy {source}: {e}")
-    
+
     # Copy essential modules from system site-packages
     print("Copying essential system modules...")
     essential_modules = ["_distutils_hack", "pip", "setuptools", "pkg_resources"]
@@ -272,16 +272,16 @@ def install_dependencies(appdir):
                     shutil.copy2(source, target)
             except Exception as e:
                 print(f"Warning: Failed to copy {source}: {e}")
-    
+
     # Copy our installed packages from the temporary venv
     print("Copying installed packages...")
     for item in os.listdir(venv_site_packages):
         if item in ["__pycache__", "pip", "setuptools", "pkg_resources", "_distutils_hack"]:
             continue
-        
+
         source = os.path.join(venv_site_packages, item)
         target = os.path.join(target_site_packages, item)
-        
+
         try:
             if os.path.isdir(source):
                 shutil.copytree(source, target, symlinks=True, dirs_exist_ok=True)
@@ -289,7 +289,7 @@ def install_dependencies(appdir):
                 shutil.copy2(source, target)
         except Exception as e:
             print(f"Warning: Failed to copy {source}: {e}")
-    
+
     # Copy dynamic libraries that Python depends on
     print("Copying Python dynamic libraries...")
     ldd_output = run_command(["ldd", python_binary])
@@ -301,18 +301,20 @@ def install_dependencies(appdir):
                 if lib_path and lib_path.startswith("/") and os.path.exists(lib_path):
                     lib_name = os.path.basename(lib_path)
                     # Skip system libraries that should be on all systems
-                    if not (lib_name.startswith("libc.so") or 
-                            lib_name.startswith("libpthread.so") or
-                            lib_name.startswith("libdl.so") or
-                            lib_name.startswith("libm.so")):
+                    if not (
+                        lib_name.startswith("libc.so")
+                        or lib_name.startswith("libpthread.so")
+                        or lib_name.startswith("libdl.so")
+                        or lib_name.startswith("libm.so")
+                    ):
                         target = os.path.join(target_lib, lib_name)
                         if not os.path.exists(target):
                             print(f"Copying {lib_path} to {target}")
                             shutil.copy2(lib_path, target)
-    
+
     # Clean up the temporary venv
     shutil.rmtree(temp_venv)
-    
+
     # Copy necessary system libraries for Qt
     copy_system_libraries(appdir)
 
