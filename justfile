@@ -105,6 +105,21 @@ release version:
     git push origin "v{{version}}"
     echo "Tag v{{version}} pushed. GitHub Actions will build and publish the release."
 
+# Delete a version tag both locally and remotely
+delete-release version:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    TAG="v{{version}}"
+    echo "Deleting release tag $TAG locally and remotely..."
+    
+    # Delete local tag (don't fail if it doesn't exist)
+    git tag -d "$TAG" || echo "Local tag $TAG doesn't exist"
+    
+    # Delete remote tag (don't fail if it doesn't exist)
+    git push origin --delete "$TAG" || echo "Remote tag $TAG doesn't exist or was already deleted"
+    
+    echo "Tag $TAG has been deleted (if it existed)."
+
 # Install Just on the system
 install-just:
     #!/usr/bin/env bash
