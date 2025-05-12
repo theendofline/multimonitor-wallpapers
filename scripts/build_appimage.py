@@ -118,11 +118,23 @@ def create_apprun(appdir):
     with open(apprun_path, "w", newline="\n") as f:
         f.write(
             """#!/bin/bash
+# Get the directory where the AppImage is mounted
 HERE="$(dirname "$(readlink -f "${0}")")"
+
+# Set up environment variables
 export PATH="${HERE}/usr/bin:${PATH}"
 export PYTHONPATH="${HERE}/usr/lib/python3.12/site-packages:${PYTHONPATH}"
+export PYTHONHOME="${HERE}/usr"
 export LD_LIBRARY_PATH="${HERE}/usr/lib:${LD_LIBRARY_PATH}"
 export XDG_DATA_DIRS="${HERE}/usr/share:${XDG_DATA_DIRS}"
+export QT_PLUGIN_PATH="${HERE}/usr/lib/python3.12/site-packages/PySide6/Qt/plugins"
+export QML2_IMPORT_PATH="${HERE}/usr/lib/python3.12/site-packages/PySide6/Qt/qml"
+export QT_QPA_PLATFORM_PLUGIN_PATH="${HERE}/usr/lib/python3.12/site-packages/PySide6/Qt/plugins/platforms"
+
+# Log environment for debugging (uncomment if needed)
+# echo "LD_LIBRARY_PATH: ${LD_LIBRARY_PATH}"
+# echo "PYTHONPATH: ${PYTHONPATH}"
+# echo "QT_PLUGIN_PATH: ${QT_PLUGIN_PATH}"
 
 # Launch the application
 "${HERE}/usr/bin/multimonitor-wallpapers" "$@"
@@ -142,8 +154,14 @@ def install_dependencies(appdir):
     # Install dependencies using uv
     run_command([f"{venv_path}/bin/pip", "install", "uv"])
 
-    run_command([f"{venv_path}/bin/uv", "pip", "install", "PySide6", "pillow"])
+    # Install PySide6 and Pillow with specific versions for stability
+    run_command([
+        f"{venv_path}/bin/uv", "pip", "install", 
+        "PySide6==6.9.0",  # Specify exact version for stability
+        "pillow==11.2.1"   # Specify exact version for stability
+    ])
 
+    print("Copying Python packages to AppDir...")
     # Copy installed packages to the AppDir lib directory
     site_packages = f"{venv_path}/lib/python3.12/site-packages"
     target_lib = f"{appdir}/usr/lib/python3.12/site-packages"
@@ -158,6 +176,53 @@ def install_dependencies(appdir):
             shutil.copytree(source, target, dirs_exist_ok=True)
         else:
             shutil.copy2(source, target)
+    
+    # Copy necessary system libraries for Qt
+    copy_system_libraries(appdir)
+
+
+def copy_system_libraries(appdir):
+    """Copy system libraries needed by PySide6/Qt."""
+    print("Copying system libraries for Qt...")
+    target_lib = f"{appdir}/usr/lib"
+    
+    # Find and copy Qt dependencies from system
+    try:
+        # Use ldd to find dependencies of PySide6's core libraries
+        qt_libs_path = f"{appdir}/usr/lib/python3.12/site-packages/PySide6"
+        if os.path.exists(qt_libs_path):
+            core_so = os.path.join(qt_libs_path, "libpyside6.abi3.so.6.9")
+            if not os.path.exists(core_so):
+                # Try to find any .so file if the specific one doesn't exist
+                so_files = [f for f in os.listdir(qt_libs_path) if f.endswith('.so')]
+                if so_files:
+                    core_so = os.path.join(qt_libs_path, so_files[0])
+                else:
+                    print("Warning: Could not find PySide6 core library")
+                    return
+                
+            print(f"Finding dependencies for: {core_so}")
+            ldd_output = run_command(["ldd", core_so])
+            
+            # Parse ldd output to find libraries
+            for line in ldd_output.splitlines():
+                if "=>" in line and "not found" not in line:
+                    lib_path = line.split("=>")[1].strip().split()[0]
+                    if lib_path and lib_path.startswith('/'):
+                        lib_name = os.path.basename(lib_path)
+                        # Skip system libraries that should be on all systems
+                        if not (lib_name.startswith('libc.so') or 
+                                lib_name.startswith('libstdc++.so') or
+                                lib_name.startswith('libdl.so') or
+                                lib_name.startswith('libm.so') or
+                                lib_name.startswith('libpthread.so')):
+                            target = os.path.join(target_lib, lib_name)
+                            if not os.path.exists(target):
+                                print(f"Copying {lib_path} to {target}")
+                                shutil.copy2(lib_path, target)
+    except Exception as e:
+        print(f"Warning: Error copying system libraries: {e}")
+        # Continue despite errors
 
 
 def download_appimagetool():
