@@ -55,7 +55,7 @@ _ensure_venv:
 # Run linting checks
 lint: _ensure_venv
     @echo "Running ruff..."
-    ruff check --ignore E501 .
+    ruff check .
     @echo "Running black in check mode..."
     black --check .
     @echo "Skipping mypy due to package name issues"

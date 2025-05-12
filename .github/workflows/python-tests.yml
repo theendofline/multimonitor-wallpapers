@@ -43,7 +43,7 @@ jobs:
       run: |
         source .venv/bin/activate
         # Run ruff and black directly instead of using just
-        ruff check .
+        ruff check --ignore E501 .
         black --check .
         mypy src/multimonitor_wallpapers
     

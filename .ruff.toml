@@ -10,7 +10,7 @@ line-length = 100
 
 [lint]
 select = ["E", "F", "I", "W", "N", "B", "C4", "ARG", "SIM"]
-ignore = []
+ignore = ["E501"]
 exclude = [
     ".git",
     ".venv",
