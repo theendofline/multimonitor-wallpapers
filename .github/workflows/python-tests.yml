@@ -53,10 +53,10 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0
         # Install Qt and OpenGL dependencies needed by PySide6
-        sudo apt-get install -y libegl1 libgl1-mesa-glx libxcomposite1 libopengl0 libxrender1 libxcursor1 libxi6
+        sudo apt-get install -y libegl1 libgl1 libxcomposite1 libopengl0 libxrender1 libxcursor1 libxi6
     
     - name: Test
       run: |
         source .venv/bin/activate
-        xvfb-run --auto-servernum pytest
+        CI=true xvfb-run --auto-servernum pytest
 
