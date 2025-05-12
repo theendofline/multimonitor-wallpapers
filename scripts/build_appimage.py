@@ -385,13 +385,7 @@ def build_appimage(appdir, output_path):
     appimagetool = download_appimagetool()
 
     # Build the AppImage with explicit architecture
-    run_command([
-        "env", "ARCH=x86_64", 
-        f"./{appimagetool}", 
-        "--no-appstream", 
-        appdir, 
-        output_path
-    ])
+    run_command(["env", "ARCH=x86_64", f"./{appimagetool}", "--no-appstream", appdir, output_path])
 
     print(f"AppImage created: {output_path}")
 
