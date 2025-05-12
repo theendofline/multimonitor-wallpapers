@@ -11,6 +11,7 @@ from __init__ import __version__
 # Use try/except for GUI-dependent imports
 try:
     from src.multimonitor_wallpapers.widget import MultiMonitorApp
+
     GUI_AVAILABLE = True
 except ImportError as e:
     print(f"GUI libraries not available, skipping GUI tests: {e}")
@@ -21,10 +22,8 @@ class TestBasicFunctionality(unittest.TestCase):
     def test_imports(self):
         """Test that required modules can be imported."""
         # Import basic modules that should always be available
-        import json
-        import pathlib
         self.assertTrue(True)  # If we got here, imports worked
-    
+
     def test_version(self):
         """Test that the version is defined."""
         self.assertIsInstance(__version__, str)
