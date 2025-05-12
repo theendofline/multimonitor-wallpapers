@@ -37,18 +37,11 @@ def create_appdir(appdir):
     os.makedirs(f"{appdir}/usr/share/applications", exist_ok=True)
     os.makedirs(f"{appdir}/usr/share/icons/hicolor/256x256/apps", exist_ok=True)
 
-    # Copy the application package (src/multimonitor_wallpapers)
-    shutil.copytree(
-        "src/multimonitor_wallpapers",
-        f"{appdir}/usr/bin/multimonitor_wallpapers",
-        dirs_exist_ok=True,
-    )
-
     # Create a Python entry script that uses the shebang line
     entry_script = f"{appdir}/usr/bin/multimonitor-wallpapers"
     with open(entry_script, "w", newline="\n") as f:
         f.write(
-            """#!/usr/bin/env python3
+            r"""#!/usr/bin/env python3
 # Entry point for MultiMonitor Wallpapers application
 
 import os
@@ -57,6 +50,15 @@ import sys
 # Add the application directory to the Python path
 app_dir = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, app_dir)
+
+# Ensure Python can find modules in site-packages
+python_version = '.'.join(sys.version.split('.')[:2])  # Get "3.12" from version
+site_packages = f"/tmp/.mount_*/usr/lib/python{python_version}/site-packages"
+import glob
+for sp in glob.glob(site_packages):
+    if sp not in sys.path and os.path.exists(sp):
+        sys.path.insert(0, sp)
+        break
 
 # Import and run the main function
 from multimonitor_wallpapers import main
@@ -68,6 +70,14 @@ if __name__ == "__main__":
 
     # Make it executable
     os.chmod(entry_script, 0o755)
+    
+    # Copy the application package to the correct location
+    # We'll put it both in bin and in site-packages to ensure it can be found
+    shutil.copytree(
+        "src/multimonitor_wallpapers",
+        f"{appdir}/usr/bin/multimonitor_wallpapers",
+        dirs_exist_ok=True,
+    )
 
 
 def create_desktop_file(appdir):
@@ -181,7 +191,7 @@ def install_dependencies(appdir):
     # Find the system Python installation
     python_version = "3.12"
     python_cmd = f"python{python_version}"
-
+    
     # Get Python's site-packages and stdlib directories
     print("Detecting Python paths...")
     python_paths = (
@@ -198,58 +208,58 @@ def install_dependencies(appdir):
         .strip()
         .split("\n")
     )
-
+    
     sys_prefix = python_paths[0]
     stdlib_path = python_paths[1]
     site_packages_path = python_paths[2]
-
+    
     print(f"Python prefix: {sys_prefix}")
     print(f"Python stdlib: {stdlib_path}")
     print(f"Python site-packages: {site_packages_path}")
-
+    
     # Create a temporary virtual environment for installing our packages
     temp_venv = os.path.join(os.path.dirname(appdir), "temp_venv")
     run_command([python_cmd, "-m", "venv", temp_venv])
-
+    
     # Install packages into the temporary venv
     pip_cmd = os.path.join(temp_venv, "bin", "pip")
-
+    
     # First install uv
     run_command([pip_cmd, "install", "uv"])
-
+    
     # Then use uv to install our dependencies
     uv_cmd = os.path.join(temp_venv, "bin", "uv")
     run_command([uv_cmd, "pip", "install", "PySide6==6.9.0", "pillow==11.2.1"])
-
+    
     # Get the site-packages directory from the venv
     venv_site_packages = os.path.join(temp_venv, "lib", f"python{python_version}", "site-packages")
-
+    
     # Create target directories in AppDir
     target_lib = os.path.join(appdir, "usr", "lib")
     target_python_lib = os.path.join(target_lib, f"python{python_version}")
     target_site_packages = os.path.join(target_python_lib, "site-packages")
     target_bin = os.path.join(appdir, "usr", "bin")
-
+    
     os.makedirs(target_python_lib, exist_ok=True)
     os.makedirs(target_site_packages, exist_ok=True)
     os.makedirs(target_bin, exist_ok=True)
-
+    
     # Copy Python binary
     python_binary = run_command(["which", python_cmd]).strip()
     shutil.copy2(python_binary, os.path.join(target_bin, os.path.basename(python_binary)))
-
+    
     # Make a symbolic link from python3 to the specific version
     os.symlink(os.path.basename(python_binary), os.path.join(target_bin, "python3"))
-
+    
     # Copy the Python standard library
     print("Copying Python standard library...")
     for item in os.listdir(stdlib_path):
         if item in ["__pycache__", "site-packages", "dist-packages"]:
             continue
-
+        
         source = os.path.join(stdlib_path, item)
         target = os.path.join(target_python_lib, item)
-
+        
         try:
             if os.path.isdir(source):
                 shutil.copytree(source, target, symlinks=True, dirs_exist_ok=True)
@@ -257,7 +267,7 @@ def install_dependencies(appdir):
                 shutil.copy2(source, target)
         except Exception as e:
             print(f"Warning: Failed to copy {source}: {e}")
-
+    
     # Copy essential modules from system site-packages
     print("Copying essential system modules...")
     essential_modules = ["_distutils_hack", "pip", "setuptools", "pkg_resources"]
@@ -272,16 +282,16 @@ def install_dependencies(appdir):
                     shutil.copy2(source, target)
             except Exception as e:
                 print(f"Warning: Failed to copy {source}: {e}")
-
+    
     # Copy our installed packages from the temporary venv
     print("Copying installed packages...")
     for item in os.listdir(venv_site_packages):
         if item in ["__pycache__", "pip", "setuptools", "pkg_resources", "_distutils_hack"]:
             continue
-
+        
         source = os.path.join(venv_site_packages, item)
         target = os.path.join(target_site_packages, item)
-
+        
         try:
             if os.path.isdir(source):
                 shutil.copytree(source, target, symlinks=True, dirs_exist_ok=True)
@@ -289,7 +299,20 @@ def install_dependencies(appdir):
                 shutil.copy2(source, target)
         except Exception as e:
             print(f"Warning: Failed to copy {source}: {e}")
-
+    
+    # Copy our application package to site-packages as well for better import support
+    print("Copying application package to site-packages...")
+    app_source = "src/multimonitor_wallpapers"
+    app_target = os.path.join(target_site_packages, "multimonitor_wallpapers")
+    try:
+        shutil.copytree(app_source, app_target, symlinks=True, dirs_exist_ok=True)
+    except Exception as e:
+        print(f"Warning: Failed to copy application to site-packages: {e}")
+    
+    # Create an __init__.py in site-packages to make it a proper package
+    with open(os.path.join(target_site_packages, "__init__.py"), "w") as f:
+        f.write("# This file makes the site-packages directory a proper package\n")
+    
     # Copy dynamic libraries that Python depends on
     print("Copying Python dynamic libraries...")
     ldd_output = run_command(["ldd", python_binary])
@@ -311,10 +334,10 @@ def install_dependencies(appdir):
                         if not os.path.exists(target):
                             print(f"Copying {lib_path} to {target}")
                             shutil.copy2(lib_path, target)
-
+    
     # Clean up the temporary venv
     shutil.rmtree(temp_venv)
-
+    
     # Copy necessary system libraries for Qt
     copy_system_libraries(appdir)
 
