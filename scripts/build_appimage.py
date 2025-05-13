@@ -666,6 +666,7 @@ except ImportError as e:
             print("Skipping verification tests")
 
     print("AppImage build completed successfully!")
+    print("The AppImage is located at: ", output_path)
 
 
 if __name__ == "__main__":
