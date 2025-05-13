@@ -119,7 +119,7 @@ class MultiMonitorApp(QMainWindow):
     def assemble_background_image(self, image_paths):
         monitors = self.get_monitors_geometry()
         desktop_env = self.detect_desktop_environment()
-        
+
         # Choose appropriate output directory based on desktop environment
         if desktop_env == "gnome":
             # Use Ubuntu standard location but also save to Cinnamon location for backward compatibility
@@ -130,7 +130,7 @@ class MultiMonitorApp(QMainWindow):
                 os.makedirs(cinnamon_dir)
         else:  # cinnamon or fallback
             output_dir = os.path.expanduser("~/.cinnamon/backgrounds")
-            
+
         output_path = os.path.join(output_dir, "multiMonitorBackground.jpg")
 
         if not os.path.exists(output_dir):
@@ -182,7 +182,7 @@ class MultiMonitorApp(QMainWindow):
             # Save the final image
             background.save(output_path, "JPEG", quality=95)
             print(f"Saved background image to: {output_path}")
-            
+
             # If we're on GNOME, also save to Cinnamon directory for compatibility
             if desktop_env == "gnome":
                 cinnamon_path = os.path.join(cinnamon_dir, "multiMonitorBackground.jpg")
@@ -199,7 +199,7 @@ class MultiMonitorApp(QMainWindow):
         # Try to detect Cinnamon or GNOME
         desktop = os.environ.get("XDG_CURRENT_DESKTOP", "").lower()
         print(f"XDG_CURRENT_DESKTOP is: {desktop}")
-        
+
         if "cinnamon" in desktop:
             return "cinnamon"
         elif "gnome" in desktop or "ubuntu" in desktop:
@@ -209,41 +209,43 @@ class MultiMonitorApp(QMainWindow):
 
     def apply_background(self):
         desktop_env = self.detect_desktop_environment()
-        
+
         # Choose appropriate output path based on desktop environment
         if desktop_env == "gnome":
-            output_path = os.path.expanduser("~/.local/share/backgrounds/multiMonitorBackground.jpg")
+            output_path = os.path.expanduser(
+                "~/.local/share/backgrounds/multiMonitorBackground.jpg"
+            )
             # Also have a fallback to the Cinnamon path
             cinnamon_path = os.path.expanduser("~/.cinnamon/backgrounds/multiMonitorBackground.jpg")
             if not os.path.exists(output_path) and os.path.exists(cinnamon_path):
                 output_path = cinnamon_path
         else:  # cinnamon or fallback
             output_path = os.path.expanduser("~/.cinnamon/backgrounds/multiMonitorBackground.jpg")
-        
+
         print(f"Using wallpaper file: {output_path}")
         print(f"File exists: {os.path.exists(output_path)}")
-            
+
         try:
             if desktop_env == "cinnamon":
                 schema = "org.cinnamon.desktop.background"
                 options = "spanned"
-                
+
                 # Set wallpaper for Cinnamon
                 subprocess.check_call(
                     ["gsettings", "set", schema, "picture-uri", f"file://{output_path}"]
                 )
                 subprocess.check_call(["gsettings", "set", schema, "picture-options", options])
-                
+
                 # For Cinnamon, refresh settings
                 subprocess.check_call(["gsettings", "set", schema, "picture-uri", "''"])
                 subprocess.check_call(
                     ["gsettings", "set", schema, "picture-uri", f"file://{output_path}"]
                 )
-                
+
             elif desktop_env == "gnome":
                 # Simple, minimal approach for GNOME
                 schema = "org.gnome.desktop.background"
-                
+
                 # Try both zoom and spanned options - use the one that works
                 for option in ["spanned", "zoom", "stretched"]:
                     try:
@@ -251,7 +253,7 @@ class MultiMonitorApp(QMainWindow):
                         subprocess.check_call(
                             ["gsettings", "set", schema, "picture-uri", f"file://{output_path}"]
                         )
-                        
+
                         # Then try to set the option
                         subprocess.check_call(
                             ["gsettings", "set", schema, "picture-options", option]
@@ -260,18 +262,24 @@ class MultiMonitorApp(QMainWindow):
                         break
                     except subprocess.CalledProcessError:
                         print(f"Option {option} failed for GNOME, trying next...")
-                
+
                 # Check for dark mode and set picture-uri-dark if system is in dark mode
                 if self.is_system_in_dark_mode():
                     try:
                         subprocess.check_call(
-                            ["gsettings", "set", schema, "picture-uri-dark", f"file://{output_path}"]
+                            [
+                                "gsettings",
+                                "set",
+                                schema,
+                                "picture-uri-dark",
+                                f"file://{output_path}",
+                            ]
                         )
                         print("Set dark mode wallpaper as well")
-                    except:
+                    except Exception:
                         # Ignore errors for dark mode - it's optional
                         pass
-                
+
             else:
                 # Fallback to Cinnamon approach
                 schema = "org.cinnamon.desktop.background"
@@ -280,9 +288,9 @@ class MultiMonitorApp(QMainWindow):
                     ["gsettings", "set", schema, "picture-uri", f"file://{output_path}"]
                 )
                 subprocess.check_call(["gsettings", "set", schema, "picture-options", options])
-                
+
             return True
-            
+
         except subprocess.CalledProcessError as e:
             print(f"Error applying background: {e}")
             return False
