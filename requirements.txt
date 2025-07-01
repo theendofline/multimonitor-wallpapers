@@ -1,6 +1,6 @@
 # Main dependencies
 PySide6==6.9.1
-pillow==11.2.1
+pillow==11.3.0
 
 # Development dependencies
 pytest==8.4.1
