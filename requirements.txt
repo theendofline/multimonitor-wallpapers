@@ -1,5 +1,5 @@
 # Main dependencies
-PySide6==6.9.1
+PySide6==6.9.2
 pillow==11.3.0
 
 # Development dependencies
