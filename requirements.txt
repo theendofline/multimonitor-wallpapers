@@ -5,5 +5,5 @@ pillow==11.3.0
 # Development dependencies
 pytest==8.4.2
 black==25.9.0
-ruff==0.13.1
+ruff==0.13.2
 mypy==1.18.1
