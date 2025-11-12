@@ -3,7 +3,7 @@ PySide6==6.10.0
 pillow==12.0.0
 
 # Development dependencies
-pytest==8.4.2
+pytest==9.0.1
 black==25.11.0
-ruff==0.14.2
+ruff==0.14.4
 mypy==1.18.2
