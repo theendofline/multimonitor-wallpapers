@@ -29,6 +29,7 @@ class MultiMonitorApp(QMainWindow):
         super().__init__()
         self.files: list[str] = []
         self.file_inputs: list[QLineEdit] = []
+        self.monitors: list[monitors.Monitor] = []
 
         self.init_ui()
         self.handle_dark_mode()
@@ -42,10 +43,10 @@ class MultiMonitorApp(QMainWindow):
         main_layout = QVBoxLayout()
         central_widget.setLayout(main_layout)
 
-        detected = monitors.get_monitors()
+        self.monitors = monitors.get_monitors()
         self.file_inputs = []
         file_layout = QHBoxLayout()
-        for monitor in detected:
+        for monitor in self.monitors:
             file_input = QLineEdit(self)
             file_input.setPlaceholderText(f"Select image for {monitor['name']}")
             file_input.setStyleSheet(
@@ -100,7 +101,7 @@ class MultiMonitorApp(QMainWindow):
         try:
             desktop_env = desktop.detect_desktop_environment()
             output_paths = desktop.wallpaper_output_paths(desktop_env)
-            compositor.compose_wallpaper(monitors.get_monitors(), self.files, output_paths)
+            compositor.compose_wallpaper(self.monitors, self.files, output_paths)
             success = desktop.apply_background(output_paths[0], desktop_env)
             if success:
                 self.statusBar().showMessage(
