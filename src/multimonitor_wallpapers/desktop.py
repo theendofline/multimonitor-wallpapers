@@ -100,6 +100,7 @@ def apply_background(output_path: str, desktop_env: str) -> bool:
 
             # Different GNOME versions accept different picture-options
             # values; try them in order of preference.
+            applied = False
             for option in ["spanned", "zoom", "stretched"]:
                 try:
                     subprocess.check_call(
@@ -107,9 +108,14 @@ def apply_background(output_path: str, desktop_env: str) -> bool:
                     )
                     subprocess.check_call(["gsettings", "set", schema, "picture-options", option])
                     logger.info("Successfully set %s for GNOME", option)
+                    applied = True
                     break
                 except subprocess.CalledProcessError:
                     logger.warning("Option %s failed for GNOME, trying next", option)
+
+            if not applied:
+                logger.error("All GNOME picture-options values failed")
+                return False
 
             if is_system_in_dark_mode():
                 try:
