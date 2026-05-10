@@ -3,21 +3,6 @@ __pycache__/
 *.py[cod]
 *.so
 
-# Qt
-*.pro.user*
-*.qbs.user*
-*.qmlproject.user*
-*.autosave
-moc_*.cpp
-qrc_*.cpp
-ui_*.h
-Makefile*
-*build-*
-*.qm
-*.qmlc
-*.jsc
-/.qtreator/
-
 # IDEs and editors
 .vscode/
 *.swp
@@ -30,27 +15,21 @@ Makefile*
 /build/
 /dist/
 *.egg-info/
-*.spec
 
-# AppImage related
+# AppImage build artifacts
 /AppDir/
 /appimage-build/
 *.AppImage
 /squashfs-root/
 
-# Project specific
-/MultiMonitorApp.egg-info/
-/MultiMonitorApp.desktop
-/MultiMonitorApp.png
-/MultiMonitorApp.svg
-/setup.py
-/AppRun
-/appimage-builder.yml
-/MANIFEST.in
-/DifferentBackgrounds.pyproject.user
-/DifferentBackgrounds.pyproject
-/
+# Tooling caches
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
 
+# Virtual environments
+.venv/
+.venv-*/
 
 # Miscellaneous
 *.log
