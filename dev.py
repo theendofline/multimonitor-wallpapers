@@ -40,7 +40,7 @@ def lint():
     run_command(["black", "--check", "."])
 
     print("Running mypy...")
-    run_command(["mypy", "widget.py"])
+    run_command(["mypy", "src/multimonitor_wallpapers"])
 
     print("All linting checks passed!")
 

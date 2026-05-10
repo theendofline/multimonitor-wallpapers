@@ -100,7 +100,7 @@ just update    # uv lock --upgrade && uv sync (refresh lock + venv)
 
 | Path | Role |
 |------|------|
-| `src/multimonitor_wallpapers/` | Application package (`widget.py`, **`__main__.py`**, **`__version__`**) |
+| `src/multimonitor_wallpapers/` | Application package: **`ui.py`** (Qt window + `main`), **`monitors.py`** (xrandr parsing), **`compositor.py`** (Pillow canvas), **`desktop.py`** (gsettings / DE detection / dark mode), **`__main__.py`**, **`__version__`** |
 | `scripts/` | **`build_appimage.py`**, **`build_deb.sh`**, **`bump_version_for_release.py`** |
 | `pyproject.toml` | Project metadata, **`[project]`** deps, optional **`dev`** / **`build`** extras |
 | **`uv.lock`** | Resolved dependency graph (commit when it changes) |
