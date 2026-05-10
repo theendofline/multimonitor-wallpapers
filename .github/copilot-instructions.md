@@ -2,7 +2,7 @@
 
 PySide6 + Pillow desktop app that sets per-monitor wallpapers on Linux
 (GNOME / KDE / xrandr backends). Packaged as AppImage and DEB, released
-by `semantic-release` from `dev`/`main`. Python 3.12+, src-layout.
+by `semantic-release` from `main`. Python 3.12+, src-layout.
 
 ## Review priorities (in order)
 
