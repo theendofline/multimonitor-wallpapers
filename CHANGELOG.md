@@ -1,3 +1,11 @@
+# [0.2.0](https://github.com/theendofline/multimonitor-wallpapers/compare/v0.1.3...v0.2.0) (2026-05-10)
+
+
+### Features
+
+* **assets:** replace procedural placeholder with a designed app icon ([12602fe](https://github.com/theendofline/multimonitor-wallpapers/commit/12602fe335a98740c62488667bd8bcd6c10b3f36))
+* **ui:** show per-monitor thumbnail of the chosen image ([4f1f942](https://github.com/theendofline/multimonitor-wallpapers/commit/4f1f942c2a2a9b3717fbc4434838062a594581d5))
+
 ## [0.1.3](https://github.com/theendofline/multimonitor-wallpapers/compare/v0.1.2...v0.1.3) (2026-05-10)
 
 
