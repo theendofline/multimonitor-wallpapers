@@ -9,7 +9,7 @@ IN_CI = os.environ.get("CI", "false").lower() == "true"
 # If not in CI, try to import GUI components
 if not IN_CI:
     try:
-        from multimonitor_wallpapers.widget import MultiMonitorApp
+        from multimonitor_wallpapers.ui import MultiMonitorApp
 
         GUI_AVAILABLE = True
     except ImportError as e:

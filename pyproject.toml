@@ -14,7 +14,7 @@ dependencies = [
 ]
 
 [project.scripts]
-multimonitor-wallpapers = "multimonitor_wallpapers.__main__:main"
+multimonitor-wallpapers = "multimonitor_wallpapers.ui:main"
 
 [project.optional-dependencies]
 dev = [
