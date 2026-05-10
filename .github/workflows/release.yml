@@ -1,78 +1,301 @@
-name: Build and Release AppImage
+name: Build and Release (main)
 
 on:
   push:
-    tags:
-      - 'v*'
+    branches:
+      - main
+
+concurrency:
+  group: multimonitor-build-release-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  build:
+  quality-gate:
+    name: Quality Gate
     runs-on: ubuntu-latest
+    timeout-minutes: 20
+    if: ${{ github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip ci]') }}
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v6
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
 
-      - name: Set up Python
-        uses: actions/setup-python@v6
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6.4.0
         with:
-          python-version: '3.12'
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Sync dependencies (locked)
+        run: |
+          set -euo pipefail
+          uv sync --frozen --extra dev
+
+      - name: Lint
+        run: |
+          set -euo pipefail
+          uv run ruff check --ignore E501 .
+          uv run black --check .
+
+      - name: Install system dependencies for tests
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 \
+            libegl1 libgl1 libxcomposite1 libopengl0 libxrender1 libxcursor1 libxi6
+
+      - name: Test
+        run: |
+          set -euo pipefail
+          CI=true xvfb-run --auto-servernum uv run pytest
+
+  resolve-release-version:
+    name: Resolve release version
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: ${{ github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip ci]') }}
+    needs: quality-gate
+    permissions:
+      contents: read
+    outputs:
+      release_version: ${{ steps.version.outputs.release_version }}
+      build_number: ${{ steps.version.outputs.build_number }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: "22"
+
+      - name: Resolve next release version
+        id: version
+        shell: bash
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+
+          BASELINE_VERSION="$(
+            grep -m1 '^__version__' src/multimonitor_wallpapers/__init__.py \
+              | sed -E "s/.*['\"]([^'\"]+)['\"].*/\\1/"
+          )"
+
+          LATEST_TAG_VERSION="$(git tag --list 'v[0-9]*.[0-9]*.[0-9]*' --sort=-v:refname | awk 'NR==1{sub(/^v/,"",$0); print; exit}')"
+
+          OUTPUT_FILE="$(mktemp)"
+          npx -y \
+            -p semantic-release \
+            -p @semantic-release/commit-analyzer \
+            -p @semantic-release/release-notes-generator \
+            -p @semantic-release/changelog \
+            -p @semantic-release/exec \
+            -p @semantic-release/git \
+            -p @semantic-release/github \
+            -p conventional-changelog-conventionalcommits \
+            semantic-release --dry-run --no-ci > "$OUTPUT_FILE" 2>&1 || true
+
+          NEXT_VERSION="$(awk 'match($0,/The next release version is ([0-9]+\.[0-9]+\.[0-9]+)/,m){print m[1]; exit}' "$OUTPUT_FILE")"
+          RESOLUTION_SOURCE="semantic_release"
+          if [ -z "${NEXT_VERSION}" ]; then
+            NEXT_VERSION="${LATEST_TAG_VERSION:-$BASELINE_VERSION}"
+            RESOLUTION_SOURCE="latest_tag_or_baseline_fallback"
+          fi
+
+          BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
+
+          echo "release_version=${NEXT_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "build_number=${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "resolution_source=${RESOLUTION_SOURCE}" >> "$GITHUB_OUTPUT"
+          echo "latest_tag_version=${LATEST_TAG_VERSION}" >> "$GITHUB_OUTPUT"
+
+      - name: Publish resolved version summary
+        shell: bash
+        run: |
+          {
+            echo "## Resolved build version"
+            echo ""
+            echo "- Release version: \`${{ steps.version.outputs.release_version }}\`"
+            echo "- Build number: \`${{ steps.version.outputs.build_number }}\`"
+            echo "- Resolution source: \`${{ steps.version.outputs.resolution_source }}\`"
+            echo "- Latest tag version: \`${{ steps.version.outputs.latest_tag_version || 'none' }}\`"
+            echo "- Linux DEB pattern: \`multimonitor-wallpapers-${{ steps.version.outputs.release_version }}-linux-amd64.deb\`"
+            echo "- Linux AppImage: \`dist/MultiMonitor-x86_64.AppImage\` (then packaged into DEB)"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+  build-appimage:
+    name: Build AppImage
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    if: ${{ github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip ci]') }}
+    needs:
+      - quality-gate
+      - resolve-release-version
+    permissions:
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6.4.0
+        with:
+          python-version: "3.12"
+
+      - name: Sync package version for build
+        run: |
+          set -euo pipefail
+          python3 scripts/bump_version_for_release.py "${{ needs.resolve-release-version.outputs.release_version }}"
 
       - name: Install build dependencies
         run: |
+          set -euo pipefail
           sudo apt-get update
-          # Install AppImage build dependencies
           sudo apt-get install -y libfuse2 desktop-file-utils libglib2.0-bin
-          # Install Qt dependencies needed by PySide6
-          sudo apt-get install -y libegl1 libgl1 libxcomposite1 libopengl0 libxrender1 libxcursor1 libxi6 libdrm2 libxau6 libxdmcp6 libxext6
-          # Install additional standard libraries needed for Qt/PySide6
-          sudo apt-get install -y libxkbcommon0 libdbus-1-3 libx11-6 libglib2.0-0 libfontconfig1 libcups2 libpango-1.0-0 libcairo2 libsm6 libxrandr2
+          sudo apt-get install -y \
+            libegl1 libgl1 libxcomposite1 libopengl0 libxrender1 libxcursor1 libxi6 \
+            libdrm2 libxau6 libxdmcp6 libxext6 libxkbcommon0 libdbus-1-3 libx11-6 \
+            libglib2.0-0 libfontconfig1 libcups2 libpango-1.0-0 libcairo2 libsm6 libxrandr2
 
-      - name: Set up environment
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Refresh lock and sync (version bump must match lock)
         run: |
-          curl -LsSf https://astral.sh/uv/install.sh | sh
-          echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-          uv venv
-          source .venv/bin/activate
-          uv pip install -r requirements.txt
-          # Install development dependencies
-          uv pip install build wheel setuptools
-          pip install -e .
+          set -euo pipefail
+          uv lock
+          uv sync --frozen --extra build
 
       - name: Build AppImage
         run: |
-          source .venv/bin/activate
-          python scripts/build_appimage.py
+          set -euo pipefail
+          uv run python scripts/build_appimage.py
 
-      - name: Test AppImage
+      - name: Verify AppImage
+        shell: bash
         run: |
-          # Make the AppImage executable
-          chmod +x dist/*.AppImage
-          # List files inside the dist directory
-          ls -la dist/
-          # Check if the AppImage was created properly
-          if [ ! -f dist/*.AppImage ]; then
-            echo "AppImage build failed: No AppImage file found in dist/"
+          set -euo pipefail
+          shopt -s nullglob
+          files=(dist/*.AppImage)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "AppImage build failed: no .AppImage in dist/"
             exit 1
           fi
+          chmod +x dist/*.AppImage
+          ls -la dist/
 
-      - name: Upload AppImage artifact
-        uses: actions/upload-artifact@v6
-        with:
-          name: AppImage
-          path: dist/*.AppImage
+      - name: Install DEB packaging tools
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y dpkg-dev fakeroot
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v3
-        with:
-          files: dist/*.AppImage
-          name: Release ${{ github.ref_name }}
-          body: |
-            MultiMonitor Wallpapers ${{ github.ref_name }}
-            
-            ## Installation
-            1. Download the AppImage file
-            2. Make it executable: `chmod +x MultiMonitor-x86_64.AppImage`
-            3. Run it: `./MultiMonitor-x86_64.AppImage`
-            
-            This is a standalone package that includes all dependencies.
+      - name: Build DEB from AppImage
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_VERSION: ${{ needs.resolve-release-version.outputs.release_version }}
+          RELEASE_BUILD_NUMBER: ${{ needs.resolve-release-version.outputs.build_number }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          chmod +x scripts/build_deb.sh
+          scripts/build_deb.sh
+
+      - name: Verify DEB
+        shell: bash
+        run: |
+          set -euo pipefail
+          shopt -s nullglob
+          debs=(dist/*.deb)
+          if [ "${#debs[@]}" -eq 0 ]; then
+            echo "DEB build failed: no .deb in dist/"
+            exit 1
+          fi
+          ls -la dist/
+
+      - name: Upload Linux artifacts (AppImage + DEB)
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: multimonitor-linux-packages-${{ github.sha }}
+          path: |
+            dist/*.AppImage
+            dist/*.deb
+          if-no-files-found: error
+          retention-days: 14
+
+  semantic-release:
+    name: Release (semantic version)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    if: ${{ github.event.head_commit == null || !contains(github.event.head_commit.message, '[skip ci]') }}
+    needs:
+      - build-appimage
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - name: Download workflow artifacts
+        uses: actions/download-artifact@v8.0.1
+        with:
+          path: release-assets
+
+      - name: Collect Linux release assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          find release-assets -type f \( -name '*.AppImage' -o -name '*.deb' \) -exec cp -t dist/ {} +
+          ls -la dist/
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version: "3.12"
+
+      - name: Configure git for semantic-release
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: "22"
+
+      - name: Run semantic-release
+        env:
+          GH_TOKEN: ${{ secrets.SEMANTIC_RELEASE_TOKEN != '' && secrets.SEMANTIC_RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
+          npx -y \
+            -p semantic-release \
+            -p @semantic-release/commit-analyzer \
+            -p @semantic-release/release-notes-generator \
+            -p @semantic-release/changelog \
+            -p @semantic-release/exec \
+            -p @semantic-release/git \
+            -p @semantic-release/github \
+            -p conventional-changelog-conventionalcommits \
+            semantic-release
