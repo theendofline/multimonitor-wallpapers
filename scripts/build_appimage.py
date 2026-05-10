@@ -371,8 +371,225 @@ def install_dependencies(appdir):
     # Clean up the temporary venv
     shutil.rmtree(temp_venv)
 
+    # Trim unused PySide6/Qt6 modules before the ldd walk so we don't
+    # also chase host libs for code we just deleted.
+    trim_pyside6(target_site_packages)
+
     # Copy necessary system libraries for Qt
     copy_system_libraries(appdir)
+
+
+# PySide6/Qt6 modules that the runtime app does not import (it uses
+# QtCore + QtGui + QtWidgets only). Each prefix matches the shared lib
+# (libQt6<prefix>*.so*) and the PySide6 binding (Qt<prefix>.abi3.so /
+# .pyi). Kept conservative on edges (DBus, Network, OpenGL, Xcb,
+# Wayland) so file dialog portals and the X11/Wayland platform plugins
+# keep working.
+_PYSIDE6_MODULE_DENYLIST = (
+    "WebEngine",
+    "WebChannel",
+    "WebSockets",
+    "WebView",
+    "Pdf",
+    "Quick",
+    "Qml",
+    "3D",
+    "Charts",
+    "DataVisualization",
+    "Graphs",
+    "Multimedia",
+    "SpatialAudio",
+    "Bluetooth",
+    "Nfc",
+    "Positioning",
+    "Location",
+    "Sensors",
+    "SerialBus",
+    "SerialPort",
+    "Scxml",
+    "StateMachine",
+    "Test",
+    "Designer",
+    "Help",
+    "HttpServer",
+    "Sql",
+    "Svg",
+    "PrintSupport",
+    "UiTools",
+    "NetworkAuth",
+    "RemoteObjects",
+    "TextToSpeech",
+    "ShaderTools",
+    "Bodymovin",
+)
+
+# FFmpeg shared libs only ship for QtMultimedia, which we drop above.
+_FFMPEG_LIB_PREFIXES = ("libav", "libsw")
+
+# Top-level PySide6 entries that are devtools or build-time artifacts,
+# never needed by a packaged GUI app.
+_PYSIDE6_TOP_LEVEL_DROP = (
+    "qmlls",
+    "qmlformat",
+    "qmltestrunner",
+    "qmlimportscanner",
+    "qmlcachegen",
+    "qmllint",
+    "qmlplugindump",
+    "qmlpreview",
+    "qmlprofiler",
+    "qmlscene",
+    "qmltyperegistrar",
+    "linguist",
+    "lupdate",
+    "lrelease",
+    "lconvert",
+    "designer",
+    "assistant",
+    "qhelpgenerator",
+    "qcollectiongenerator",
+    "qtdiag",
+    "rcc",
+    "uic",
+    "shiboken6",
+    "balsam",
+    "balsamui",
+    "deployqt",
+    "androiddeployqt",
+    "include",
+    "typesystems",
+    "scripts",
+    "support",
+    "examples",
+    "glue",
+)
+
+# Plugin subdirectories under PySide6/Qt/plugins/ that go with the
+# disabled modules above.
+_QT_PLUGIN_DROP = (
+    "qmltooling",
+    "qml1tooling",
+    "scenegraph",
+    "multimedia",
+    "multimediabackends",
+    "mediaservice",
+    "playlistformats",
+    "audio",
+    "video",
+    "printsupport",
+    "sqldrivers",
+    "designer",
+    "webview",
+    "geometryloaders",
+    "renderers",
+    "renderplugins",
+    "sceneparsers",
+    "geoservices",
+    "position",
+    "sensors",
+    "sensorgestures",
+    "texttospeech",
+    "canbus",
+    "bearer",
+    "networkinformation",
+    "networkaccess",
+    "gamepads",
+    "egldeviceintegrations",
+    "qmldebugbackends",
+)
+
+
+def _delete(path, removed):
+    """Remove `path` (file or directory) and bookkeep bytes freed."""
+    try:
+        if path.is_dir() and not path.is_symlink():
+            size = sum(p.stat().st_size for p in path.rglob("*") if p.is_file())
+            shutil.rmtree(path)
+        else:
+            size = path.stat().st_size
+            path.unlink()
+        removed["count"] += 1
+        removed["bytes"] += size
+    except OSError as exc:
+        print(f"  warn: could not remove {path}: {exc}")
+
+
+def trim_pyside6(target_site_packages):
+    """Delete PySide6/Qt6 components the runtime app never imports.
+
+    The app uses only QtCore/QtGui/QtWidgets. Everything else
+    (WebEngine, QML, Multimedia, 3D, Charts, ...) is dead weight and
+    accounts for most of the AppImage size.
+    """
+    pyside = Path(target_site_packages) / "PySide6"
+    if not pyside.exists():
+        print("trim_pyside6: PySide6 not found, nothing to trim")
+        return
+
+    before = sum(p.stat().st_size for p in pyside.rglob("*") if p.is_file())
+    removed = {"count": 0, "bytes": 0}
+    print(f"trim_pyside6: starting; PySide6 currently {before / 1024 / 1024:.1f} MB")
+
+    # 1) Devtools and build-time directories at PySide6 top level.
+    for name in _PYSIDE6_TOP_LEVEL_DROP:
+        path = pyside / name
+        if path.exists():
+            _delete(path, removed)
+
+    # 2) Top-level binding files for unused modules:
+    #    Qt<Mod>.abi3.so, Qt<Mod>.pyi, Qt<Mod>.so, etc.
+    for child in list(pyside.iterdir()):
+        if not child.is_file():
+            continue
+        stem = child.name
+        for prefix in _PYSIDE6_MODULE_DENYLIST:
+            if stem.startswith(f"Qt{prefix}"):
+                _delete(child, removed)
+                break
+
+    # 3) Bulky Qt asset trees. We keep `lib/` (filtered below),
+    #    `plugins/` (filtered below), and `libexec/`.
+    qt = pyside / "Qt"
+    if qt.exists():
+        for asset in ("qml", "resources", "translations", "metatypes"):
+            path = qt / asset
+            if path.exists():
+                _delete(path, removed)
+
+        # 4) Qt 6 shared libs in Qt/lib for unused modules + FFmpeg.
+        lib_dir = qt / "lib"
+        if lib_dir.exists():
+            for so in list(lib_dir.iterdir()):
+                if not so.is_file() and not so.is_symlink():
+                    continue
+                name = so.name
+                if any(name.startswith(p) for p in _FFMPEG_LIB_PREFIXES):
+                    _delete(so, removed)
+                    continue
+                if not name.startswith("libQt6"):
+                    continue
+                # libQt6<Module>.so.6 / .so.6.x.y
+                tail = name[len("libQt6") :]
+                for prefix in _PYSIDE6_MODULE_DENYLIST:
+                    if tail.startswith(prefix):
+                        _delete(so, removed)
+                        break
+
+        # 5) Plugin subdirectories that go with the disabled modules.
+        plugins = qt / "plugins"
+        if plugins.exists():
+            for sub in _QT_PLUGIN_DROP:
+                path = plugins / sub
+                if path.exists():
+                    _delete(path, removed)
+
+    after = sum(p.stat().st_size for p in pyside.rglob("*") if p.is_file())
+    saved = before - after
+    print(
+        f"trim_pyside6: removed {removed['count']} entries, "
+        f"freed {saved / 1024 / 1024:.1f} MB; PySide6 now "
+        f"{after / 1024 / 1024:.1f} MB"
+    )
 
 
 def copy_system_libraries(appdir):
