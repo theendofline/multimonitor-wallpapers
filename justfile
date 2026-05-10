@@ -108,8 +108,8 @@ lint: _ensure_venv
     ruff check .
     @echo "Running black in check mode..."
     black --check .
-    @echo "Skipping mypy due to package name issues"
-    # mypy src/multimonitor_wallpapers
+    @echo "Running mypy..."
+    mypy src/multimonitor_wallpapers
     @echo "All linting checks passed!"
 
 # 10. Create and push a new version tag
