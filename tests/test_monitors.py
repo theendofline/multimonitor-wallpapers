@@ -11,7 +11,7 @@ import pytest
 from multimonitor_wallpapers import monitors as monitors_module
 from multimonitor_wallpapers.monitors import get_monitors, parse_xrandr_output
 
-DUAL_MONITOR_XRANDR = """\
+TRIPLE_MONITOR_XRANDR = """\
 Screen 0: minimum 320 x 200, current 5760 x 1080, maximum 16384 x 16384
 DP-0 connected primary 1920x1080+1920+0 (normal left inverted right x axis y axis) 600mm x 340mm
    1920x1080     60.00*+
@@ -32,7 +32,7 @@ EMPTY_XRANDR = "Screen 0: minimum 320 x 200, current 0 x 0, maximum 16384 x 1638
 
 
 def test_parses_three_connected_monitors_sorted_left_to_right() -> None:
-    monitors = parse_xrandr_output(DUAL_MONITOR_XRANDR)
+    monitors = parse_xrandr_output(TRIPLE_MONITOR_XRANDR)
 
     assert [m["name"] for m in monitors] == ["HDMI-1", "DP-0", "HDMI-2"]
     assert [m["offset"] for m in monitors] == [(0, 0), (1920, 0), (3840, 0)]
@@ -46,7 +46,7 @@ def test_strips_primary_marker_from_geometry_lookup() -> None:
 
 
 def test_ignores_disconnected_outputs() -> None:
-    monitors = parse_xrandr_output(DUAL_MONITOR_XRANDR)
+    monitors = parse_xrandr_output(TRIPLE_MONITOR_XRANDR)
     assert "DP-1" not in [m["name"] for m in monitors]
 
 
