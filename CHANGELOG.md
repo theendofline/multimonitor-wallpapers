@@ -1,3 +1,12 @@
+## [0.1.3](https://github.com/theendofline/multimonitor-wallpapers/compare/v0.1.2...v0.1.3) (2026-05-10)
+
+
+### Bug Fixes
+
+* **build:** drop unused ImageMagick convert from AppImage payload ([5517bc5](https://github.com/theendofline/multimonitor-wallpapers/commit/5517bc5b93254d7e5ecd3bafc62562f7bd78c5f7))
+* **build:** stop bundling pip/setuptools/pkg_resources/_distutils_hack ([c9fe595](https://github.com/theendofline/multimonitor-wallpapers/commit/c9fe595806f4975352fe6a3473648a383a19c0cf))
+* **build:** trim unused PySide6/Qt6 modules from AppImage payload ([0165160](https://github.com/theendofline/multimonitor-wallpapers/commit/01651600e00abe5856f3b990f53877be52589406))
+
 ## [0.1.2](https://github.com/theendofline/multimonitor-wallpapers/compare/v0.1.1...v0.1.2) (2026-05-10)
 
 
