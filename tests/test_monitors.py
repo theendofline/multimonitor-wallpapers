@@ -6,7 +6,10 @@ layout, trimmed to the lines the parser actually inspects.
 
 from __future__ import annotations
 
-from multimonitor_wallpapers.monitors import parse_xrandr_output
+import pytest
+
+from multimonitor_wallpapers import monitors as monitors_module
+from multimonitor_wallpapers.monitors import get_monitors, parse_xrandr_output
 
 DUAL_MONITOR_XRANDR = """\
 Screen 0: minimum 320 x 200, current 5760 x 1080, maximum 16384 x 16384
@@ -50,3 +53,14 @@ def test_ignores_disconnected_outputs() -> None:
 def test_falls_back_to_single_default_monitor_when_none_connected() -> None:
     monitors = parse_xrandr_output(EMPTY_XRANDR)
     assert monitors == [{"name": "default", "geometry": "1920x1080", "offset": (0, 0)}]
+
+
+def test_get_monitors_falls_back_when_xrandr_is_missing(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def _raise(*_args: object, **_kwargs: object) -> object:
+        raise FileNotFoundError("xrandr")
+
+    monkeypatch.setattr(monitors_module.subprocess, "run", _raise)
+
+    assert get_monitors() == [{"name": "default", "geometry": "1920x1080", "offset": (0, 0)}]

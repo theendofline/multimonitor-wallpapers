@@ -54,9 +54,21 @@ def parse_xrandr_output(stdout: str) -> list[Monitor]:
 
 
 def get_monitors() -> list[Monitor]:
-    """Run `xrandr --query` and return the parsed monitor layout."""
-    result = subprocess.run(["xrandr", "--query"], capture_output=True, text=True)
-    monitors = parse_xrandr_output(result.stdout)
+    """Run `xrandr --query` and return the parsed monitor layout.
+
+    If `xrandr` is missing (e.g. headless CI, non-X11 session) we log and
+    return the same single-monitor fallback `parse_xrandr_output` produces
+    on empty input, so the UI can still render and surface a friendly
+    dependency error on user action.
+    """
+    try:
+        result = subprocess.run(["xrandr", "--query"], capture_output=True, text=True)
+        stdout = result.stdout
+    except (FileNotFoundError, OSError) as exc:
+        logger.warning("xrandr unavailable (%s); using default 1920x1080 monitor", exc)
+        stdout = ""
+
+    monitors = parse_xrandr_output(stdout)
 
     logger.info("Detected monitors:")
     for monitor in monitors:
