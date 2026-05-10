@@ -2,6 +2,33 @@
 requires = ["setuptools>=42", "wheel"]
 build-backend = "setuptools.build_meta"
 
+[project]
+name = "multimonitor-wallpapers"
+version = "0.1.0"
+description = "Set different wallpapers on multiple monitors (Linux)."
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+  "PySide6==6.10.1",
+  "pillow==12.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest==9.0.2",
+  "black==26.1.0",
+  "ruff==0.14.8",
+  "mypy==1.19.1",
+]
+build = [
+  "build>=1.2.0",
+  "wheel>=0.45.0",
+  "setuptools>=75.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.black]
 line-length = 100
 target-version = ['py312']
