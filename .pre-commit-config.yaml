@@ -5,7 +5,7 @@
 default_language_version:
   python: python3.12
 
-exclude: ^(\.venv/|\.uv/|dist/|squashfs-root/|src/.*\.egg-info/)
+exclude: ^(\.venv/|dist/|squashfs-root/|src/.*\.egg-info/)
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
@@ -34,3 +34,9 @@ repos:
     hooks:
       - id: black
         language_version: python3.12
+
+  # GitHub Actions checks
+  - repo: https://github.com/rhysd/actionlint
+    rev: v1.7.12
+    hooks:
+    - id: actionlint

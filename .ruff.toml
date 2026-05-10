@@ -21,7 +21,7 @@ exclude = [
 ]
 
 [lint.isort]
-known-first-party = ["widget"]
+known-first-party = ["multimonitor_wallpapers"]
 known-third-party = ["PySide6", "PIL"]
 
 [lint.flake8-quotes]

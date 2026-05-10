@@ -13,7 +13,16 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def read_project_version():
+    """Return the current `[project].version` from pyproject.toml."""
+    with (PROJECT_ROOT / "pyproject.toml").open("rb") as f:
+        return tomllib.load(f)["project"]["version"]
 
 
 def run_command(cmd, cwd=None):
@@ -144,23 +153,16 @@ def create_icon(appdir):
         print("No icon found. Generating a simple placeholder icon...")
         os.makedirs("assets", exist_ok=True)
 
-        try:
-            from PIL import Image, ImageDraw
+        from PIL import Image, ImageDraw
 
-            # Create a simple 256x256 icon
-            img = Image.new("RGB", (256, 256), color=(73, 109, 137))
-            d = ImageDraw.Draw(img)
-            d.rectangle([20, 20, 236, 236], outline=(255, 255, 255), width=5)
-            d.rectangle([60, 60, 120, 120], fill=(255, 255, 255))
-            d.rectangle([136, 60, 196, 120], fill=(255, 255, 255))
-            d.rectangle([60, 136, 196, 196], fill=(255, 255, 255))
+        img = Image.new("RGB", (256, 256), color=(73, 109, 137))
+        d = ImageDraw.Draw(img)
+        d.rectangle([20, 20, 236, 236], outline=(255, 255, 255), width=5)
+        d.rectangle([60, 60, 120, 120], fill=(255, 255, 255))
+        d.rectangle([136, 60, 196, 120], fill=(255, 255, 255))
+        d.rectangle([60, 136, 196, 196], fill=(255, 255, 255))
 
-            img.save(icon_path)
-        except ImportError:
-            print("Pillow not available. Using fallback solution.")
-            # Fallback to copying a system icon if Pillow is not available
-            with open(icon_path, "wb") as f:
-                f.write(b"")  # Create empty file as fallback
+        img.save(icon_path)
 
     # Copy icon to AppDir
     icon_dest = f"{appdir}/usr/share/icons/hicolor/256x256/apps/multimonitor-wallpapers.png"
@@ -474,36 +476,6 @@ def copy_system_libraries(appdir):
         else:
             print("Warning: Could not find Pillow directory")
 
-        # Copy additional Qt dependencies that might be needed
-        print("Copying additional Qt dependencies...")
-        qt_libs = [
-            "/usr/lib/x86_64-linux-gnu/libQt5Core.so.5",
-            "/usr/lib/x86_64-linux-gnu/libQt5Gui.so.5",
-            "/usr/lib/x86_64-linux-gnu/libQt5Widgets.so.5",
-            "/usr/lib/x86_64-linux-gnu/libQt5DBus.so.5",
-            "/usr/lib/x86_64-linux-gnu/libQt5XcbQpa.so.5",
-            "/usr/lib/x86_64-linux-gnu/libxcb.so.1",
-            "/usr/lib/x86_64-linux-gnu/libX11.so.6",
-            "/usr/lib/x86_64-linux-gnu/libXext.so.6",
-            "/usr/lib/x86_64-linux-gnu/libXrender.so.1",
-            "/usr/lib/x86_64-linux-gnu/libICE.so.6",
-            "/usr/lib/x86_64-linux-gnu/libSM.so.6",
-            "/usr/lib/x86_64-linux-gnu/libGL.so.1",
-            "/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0",
-            "/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0",
-            "/usr/lib/x86_64-linux-gnu/libpango-1.0.so.0",
-            "/usr/lib/x86_64-linux-gnu/libcairo.so.2",
-            "/usr/lib/x86_64-linux-gnu/libfontconfig.so.1",
-        ]
-
-        for lib_path in qt_libs:
-            if os.path.exists(lib_path):
-                lib_name = os.path.basename(lib_path)
-                target = os.path.join(target_lib, lib_name)
-                if not os.path.exists(target):
-                    print(f"Copying {lib_path} to {target}")
-                    shutil.copy2(lib_path, target)
-
     except Exception as e:
         print(f"Warning: Error copying system libraries: {e}")
         # Continue despite errors
@@ -603,10 +575,13 @@ def main():
         # Copy system commands
         copy_system_commands(appdir)
 
-        # Build AppImage
+        # Build AppImage. Version comes from pyproject.toml so the filename
+        # always matches whatever the release pipeline (or `just appimage`)
+        # has just bumped the project to.
         output_dir = "dist"
         os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.abspath(f"{output_dir}/MultiMonitor-x86_64.AppImage")
+        version = read_project_version()
+        output_path = os.path.abspath(f"{output_dir}/MultiMonitor-{version}-x86_64.AppImage")
 
         build_appimage(appdir, output_path)
 

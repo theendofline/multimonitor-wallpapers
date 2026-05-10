@@ -7,7 +7,7 @@
     [
       "@semantic-release/exec",
       {
-        "prepareCmd": "python3 scripts/bump_version_for_release.py \"<%= nextRelease.version %>\" && uv lock"
+        "prepareCmd": "scripts/build_release_artifacts.sh \"<%= nextRelease.version %>\""
       }
     ],
     [
@@ -15,7 +15,6 @@
       {
         "assets": [
           "CHANGELOG.md",
-          "__init__.py",
           "src/multimonitor_wallpapers/__init__.py",
           "pyproject.toml",
           "uv.lock"

@@ -108,8 +108,8 @@ lint: _ensure_venv
     ruff check .
     @echo "Running black in check mode..."
     black --check .
-    @echo "Skipping mypy due to package name issues"
-    # mypy src/multimonitor_wallpapers
+    @echo "Running mypy..."
+    mypy src/multimonitor_wallpapers
     @echo "All linting checks passed!"
 
 # 10. Create and push a new version tag
@@ -123,7 +123,7 @@ release version:
 
 # 11. Run the application
 run: _ensure_venv
-    python multimonitor_wallpapers.py
+    uv run multimonitor-wallpapers
 
 # 12. Setup development environment (uv lockfile)
 setup:
