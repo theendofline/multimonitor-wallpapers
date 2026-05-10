@@ -123,7 +123,7 @@ release version:
 
 # 11. Run the application
 run: _ensure_venv
-    python multimonitor_wallpapers.py
+    uv run multimonitor-wallpapers
 
 # 12. Setup development environment (uv lockfile)
 setup:

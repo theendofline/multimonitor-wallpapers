@@ -36,13 +36,14 @@ def main() -> None:
         raise SystemExit(f"Expected semver X.Y.Z, got: {version!r}")
 
     root = Path(__file__).resolve().parent.parent
-    for rel in ("__init__.py", "src/multimonitor_wallpapers/__init__.py"):
-        path = root / rel
-        original = path.read_text(encoding="utf-8")
-        updated, n = _set_init_version(original, version)
-        if n != 1:
-            raise SystemExit(f"Expected exactly one __version__ line in {rel}, replaced {n}")
-        path.write_text(updated, encoding="utf-8")
+    init_path = root / "src" / "multimonitor_wallpapers" / "__init__.py"
+    original = init_path.read_text(encoding="utf-8")
+    updated, n = _set_init_version(original, version)
+    if n != 1:
+        raise SystemExit(
+            f"Expected exactly one __version__ line in {init_path.relative_to(root)}, replaced {n}"
+        )
+    init_path.write_text(updated, encoding="utf-8")
 
     pp = root / "pyproject.toml"
     body = pp.read_text(encoding="utf-8")

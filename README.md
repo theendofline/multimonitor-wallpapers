@@ -24,16 +24,17 @@ Dependencies and exact transitive versions live in **`pyproject.toml`** + **`uv.
 uv sync --frozen --extra dev --extra build
 
 # Run without manually activating the venv
-uv run python multimonitor_wallpapers.py
+uv run multimonitor-wallpapers
+# or: uv run python -m multimonitor_wallpapers
 # or, after: source .venv/bin/activate
-python multimonitor_wallpapers.py
+multimonitor-wallpapers
 ```
 
 **Runtime only** (no pytest/ruff/black/mypy/build tools):
 
 ```bash
 uv sync --frozen
-uv run python multimonitor_wallpapers.py
+uv run multimonitor-wallpapers
 ```
 
 ### Lock / sync workflow
@@ -58,6 +59,8 @@ pip install -e ".[dev]"   # app + dev tools
 pip install -e .
 ```
 
+Run the app with **`multimonitor-wallpapers`** or **`python -m multimonitor_wallpapers`** (after install, on **`PATH`**).
+
 pip does **not** read **`uv.lock`**; you only get the direct pins from **`pyproject.toml`**.
 
 ## AppImage (Linux)
@@ -70,7 +73,7 @@ The AppImage bundles Python, PySide6, and app code; no separate Python install i
 
 ## Usage (from source)
 
-1. Start the UI: `uv run python multimonitor_wallpapers.py` (or activate **`.venv`** and run the same).
+1. Start the UI: **`uv run multimonitor-wallpapers`** (or **`uv run python -m multimonitor_wallpapers`**; with an activated **`.venv`**, **`multimonitor-wallpapers`** on **`PATH`**).
 2. Choose images per monitor, **Apply** to set wallpapers, **Cancel** / **Quit** as needed.
 
 ## How it works
@@ -97,9 +100,8 @@ just update    # uv lock --upgrade && uv sync (refresh lock + venv)
 
 | Path | Role |
 |------|------|
-| `src/multimonitor_wallpapers/` | Application package (`widget.py`, `__main__.py`, …) |
-| `scripts/build_appimage.py` | AppImage build |
-| `scripts/build_deb.sh` | `.deb` from built AppImage (CI) |
+| `src/multimonitor_wallpapers/` | Application package (`widget.py`, **`__main__.py`**, **`__version__`**) |
+| `scripts/` | **`build_appimage.py`**, **`build_deb.sh`**, **`bump_version_for_release.py`** |
 | `pyproject.toml` | Project metadata, **`[project]`** deps, optional **`dev`** / **`build`** extras |
 | **`uv.lock`** | Resolved dependency graph (commit when it changes) |
 | `.github/workflows/` | CI: tests on PR/`dev`, release pipeline on **`main`** |
@@ -116,7 +118,7 @@ Output: **`dist/MultiMonitor-x86_64.AppImage`**.
 ## CI and releases
 
 - **Pull requests / `dev`:** **`.github/workflows/python-tests.yml`** runs **`uv sync --frozen --extra dev`** then lint + tests.
-- **`main`:** **`.github/workflows/release.yml`** runs tests, builds **AppImage** + **`.deb`**, then **[semantic-release](https://semantic-release.gitbook.io/)** creates GitHub releases from [Conventional Commits](https://www.conventionalcommits.org/). Release commits bump **`pyproject.toml`**, **`uv.lock`**, and `__version__` and are tagged **`[skip ci]`** so they do not retrigger the full build.
+- **`main`:** **`.github/workflows/release.yml`** runs tests, builds **AppImage** + **`.deb`**, then **[semantic-release](https://semantic-release.gitbook.io/)** creates GitHub releases from [Conventional Commits](https://www.conventionalcommits.org/). Release commits bump **`pyproject.toml`**, **`src/multimonitor_wallpapers/__init__.py`** (`__version__`), **`uv.lock`**, and are tagged **`[skip ci]`** so they do not retrigger the full build.
 
 ## Contributing
 

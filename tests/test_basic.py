@@ -1,12 +1,7 @@
 import os
-import sys
 import unittest
 
-# Add parent directory to path so we can import the module
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-
-# Import version directly
-from __init__ import __version__
+from multimonitor_wallpapers import __version__
 
 # Check if running in CI environment
 IN_CI = os.environ.get("CI", "false").lower() == "true"
@@ -14,7 +9,7 @@ IN_CI = os.environ.get("CI", "false").lower() == "true"
 # If not in CI, try to import GUI components
 if not IN_CI:
     try:
-        from src.multimonitor_wallpapers.widget import MultiMonitorApp
+        from multimonitor_wallpapers.widget import MultiMonitorApp
 
         GUI_AVAILABLE = True
     except ImportError as e:

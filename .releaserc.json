@@ -15,7 +15,6 @@
       {
         "assets": [
           "CHANGELOG.md",
-          "__init__.py",
           "src/multimonitor_wallpapers/__init__.py",
           "pyproject.toml",
           "uv.lock"
