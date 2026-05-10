@@ -81,7 +81,7 @@ print("Python path:", sys.path)
 print("LD_LIBRARY_PATH:", os.environ.get('LD_LIBRARY_PATH', ''))
 
 # Check for required commands
-for cmd in ['gsettings', 'xrandr', 'convert']:
+for cmd in ['gsettings', 'xrandr']:
     cmd_path = shutil.which(cmd)
     print(f"{cmd} found at: {cmd_path}")
 
@@ -490,7 +490,7 @@ def copy_system_commands(appdir):
     os.makedirs(target_lib, exist_ok=True)
 
     # List of commands to copy
-    commands = ["gsettings", "xrandr", "convert"]
+    commands = ["gsettings", "xrandr"]
 
     for cmd in commands:
         # Find the command path
