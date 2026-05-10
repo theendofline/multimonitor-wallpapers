@@ -26,7 +26,7 @@ _ensure_venv:
     fi
 
 # 2. Build AppImage for distribution
-appimage: _ensure_venv icon
+appimage: _ensure_venv
     #!/usr/bin/env bash
     set -euo pipefail
     echo "Ensuring build extras are installed..."
@@ -76,12 +76,7 @@ help:
     echo -e "\nHidden recipes:"
     echo "    _ensure_venv           # 1. Ensure virtual environment is activated (private helper)"
 
-# 7. Generate application icon
-icon: _ensure_venv
-    @echo "Generating application icon..."
-    python generate_icon.py
-
-# 8. Install Just on the system
+# 7. Install Just on the system
 install-just:
     #!/usr/bin/env bash
     set -euo pipefail
