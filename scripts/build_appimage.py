@@ -13,7 +13,16 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import tomllib
 from pathlib import Path
+
+PROJECT_ROOT = Path(__file__).resolve().parent.parent
+
+
+def read_project_version():
+    """Return the current `[project].version` from pyproject.toml."""
+    with (PROJECT_ROOT / "pyproject.toml").open("rb") as f:
+        return tomllib.load(f)["project"]["version"]
 
 
 def run_command(cmd, cwd=None):
@@ -603,10 +612,13 @@ def main():
         # Copy system commands
         copy_system_commands(appdir)
 
-        # Build AppImage
+        # Build AppImage. Version comes from pyproject.toml so the filename
+        # always matches whatever the release pipeline (or `just appimage`)
+        # has just bumped the project to.
         output_dir = "dist"
         os.makedirs(output_dir, exist_ok=True)
-        output_path = os.path.abspath(f"{output_dir}/MultiMonitor-x86_64.AppImage")
+        version = read_project_version()
+        output_path = os.path.abspath(f"{output_dir}/MultiMonitor-{version}-x86_64.AppImage")
 
         build_appimage(appdir, output_path)
 

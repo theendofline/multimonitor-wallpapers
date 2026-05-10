@@ -7,7 +7,8 @@
 #   RELEASE_BUILD_NUMBER — Debian revision (default: 1)
 #
 # Arg:
-#   $1 — path to AppImage (default: dist/MultiMonitor-x86_64.AppImage)
+#   $1 — path to AppImage
+#        (default: dist/MultiMonitor-${RELEASE_VERSION}-x86_64.AppImage)
 
 set -euo pipefail
 
@@ -16,7 +17,7 @@ cd "$ROOT"
 
 RELEASE_VERSION="${RELEASE_VERSION:?RELEASE_VERSION is required (e.g. 1.2.3)}"
 RELEASE_BUILD_NUMBER="${RELEASE_BUILD_NUMBER:-1}"
-APPIMAGE="${1:-dist/MultiMonitor-x86_64.AppImage}"
+APPIMAGE="${1:-dist/MultiMonitor-${RELEASE_VERSION}-x86_64.AppImage}"
 ARCH="amd64"
 APP_SLUG="multimonitor-wallpapers"
 DIST_DIR="dist"
