@@ -116,10 +116,12 @@ jobs:
 
           BUILD_NUMBER="${GITHUB_RUN_NUMBER}"
 
-          echo "release_version=${NEXT_VERSION}" >> "$GITHUB_OUTPUT"
-          echo "build_number=${BUILD_NUMBER}" >> "$GITHUB_OUTPUT"
-          echo "resolution_source=${RESOLUTION_SOURCE}" >> "$GITHUB_OUTPUT"
-          echo "latest_tag_version=${LATEST_TAG_VERSION}" >> "$GITHUB_OUTPUT"
+          {
+            echo "release_version=${NEXT_VERSION}"
+            echo "build_number=${BUILD_NUMBER}"
+            echo "resolution_source=${RESOLUTION_SOURCE}"
+            echo "latest_tag_version=${LATEST_TAG_VERSION}"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Publish resolved version summary
         shell: bash
