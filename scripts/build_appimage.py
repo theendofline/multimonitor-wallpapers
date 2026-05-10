@@ -532,7 +532,10 @@ def download_appimagetool():
 
     if not appimagetool_path.exists():
         print("Downloading appimagetool...")
-        url = "https://github.com/AppImage/AppImageKit/releases/download/continuous/appimagetool-x86_64.AppImage"
+        # AppImageKit is obsolete; the tool now lives in its own repo.
+        # See https://github.com/AppImage/AppImageKit/releases (deprecation
+        # notice) and https://github.com/AppImage/appimagetool/releases.
+        url = "https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage"
         run_command(["curl", "-L", "-o", str(appimagetool_path), url])
         os.chmod(appimagetool_path, 0o755)
 
