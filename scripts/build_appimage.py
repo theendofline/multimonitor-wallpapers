@@ -153,23 +153,16 @@ def create_icon(appdir):
         print("No icon found. Generating a simple placeholder icon...")
         os.makedirs("assets", exist_ok=True)
 
-        try:
-            from PIL import Image, ImageDraw
+        from PIL import Image, ImageDraw
 
-            # Create a simple 256x256 icon
-            img = Image.new("RGB", (256, 256), color=(73, 109, 137))
-            d = ImageDraw.Draw(img)
-            d.rectangle([20, 20, 236, 236], outline=(255, 255, 255), width=5)
-            d.rectangle([60, 60, 120, 120], fill=(255, 255, 255))
-            d.rectangle([136, 60, 196, 120], fill=(255, 255, 255))
-            d.rectangle([60, 136, 196, 196], fill=(255, 255, 255))
+        img = Image.new("RGB", (256, 256), color=(73, 109, 137))
+        d = ImageDraw.Draw(img)
+        d.rectangle([20, 20, 236, 236], outline=(255, 255, 255), width=5)
+        d.rectangle([60, 60, 120, 120], fill=(255, 255, 255))
+        d.rectangle([136, 60, 196, 120], fill=(255, 255, 255))
+        d.rectangle([60, 136, 196, 196], fill=(255, 255, 255))
 
-            img.save(icon_path)
-        except ImportError:
-            print("Pillow not available. Using fallback solution.")
-            # Fallback to copying a system icon if Pillow is not available
-            with open(icon_path, "wb") as f:
-                f.write(b"")  # Create empty file as fallback
+        img.save(icon_path)
 
     # Copy icon to AppDir
     icon_dest = f"{appdir}/usr/share/icons/hicolor/256x256/apps/multimonitor-wallpapers.png"
