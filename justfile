@@ -4,34 +4,36 @@
 # Default command: show help
 default: help
 
-# 1. Ensure virtual environment is activated (private helper)
+# 1. Ensure virtual environment (private helper)
 _ensure_venv:
     #!/usr/bin/env bash
     set -euo pipefail
+    if ! command -v uv &> /dev/null; then
+        echo "uv is not installed. Install from https://docs.astral.sh/uv/getting-started/installation/"
+        exit 1
+    fi
+    if [[ ! -d .venv ]]; then
+        echo "Creating .venv and syncing from uv.lock..."
+        uv sync --frozen --extra dev --extra build
+    fi
     if [[ -z "${VIRTUAL_ENV:-}" ]]; then
-        if [[ -d ".venv" ]]; then
-            echo "Activating virtual environment..."
-            if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
-                source .venv/Scripts/activate
-            else
-                source .venv/bin/activate
-            fi
+        echo "Activating virtual environment..."
+        if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
+            source .venv/Scripts/activate
         else
-            echo "No virtual environment found. Creating one..."
-            uv venv
-            if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
-                source .venv/Scripts/activate
-            else
-                source .venv/bin/activate
-            fi
+            source .venv/bin/activate
         fi
     fi
 
 # 2. Build AppImage for distribution
 appimage: _ensure_venv icon
-    @echo "Building AppImage..."
+    #!/usr/bin/env bash
+    set -euo pipefail
+    echo "Ensuring build extras are installed..."
+    uv sync --frozen --extra dev --extra build
+    echo "Building AppImage..."
     mkdir -p dist
-    python scripts/build_appimage.py
+    uv run python scripts/build_appimage.py
 
 # 3. Clean build artifacts and cache files
 clean:
@@ -123,7 +125,7 @@ release version:
 run: _ensure_venv
     python multimonitor_wallpapers.py
 
-# 12. Setup development environment with uv
+# 12. Setup development environment (uv lockfile)
 setup:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -131,21 +133,10 @@ setup:
     if ! command -v uv &> /dev/null; then
         echo "Installing uv..."
         curl -LsSf https://astral.sh/uv/install.sh | sh
+        export PATH="$HOME/.local/bin:$PATH"
     fi
-    
-    echo "Creating virtual environment..."
-    uv venv
-    
-    echo "Installing dependencies..."
-    if [[ "$OSTYPE" == "msys" || "$OSTYPE" == "win32" ]]; then
-        source .venv/Scripts/activate
-    else
-        source .venv/bin/activate
-    fi
-    # Use pip instead of uv to install in development mode to avoid setuptools issues
-    pip install -e ".[dev]"
-    
-    echo "Development environment set up successfully."
+    uv sync --frozen --extra dev --extra build
+    echo "Development environment ready (.venv). Activate with: source .venv/bin/activate"
 
 # 13. Run tests
 test: _ensure_venv
@@ -153,12 +144,11 @@ test: _ensure_venv
     pytest
     @echo "All tests passed!"
 
-# 14. Update dependencies to the latest versions
+# 14. Refresh lockfile and resync environment
 update: _ensure_venv
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "Updating dependencies to latest versions..."
-    uv pip sync --upgrade requirements.txt
-    echo "Installing latest development dependencies..."
-    uv pip install --upgrade pytest black ruff mypy
-    echo "Dependencies updated successfully." 
+    echo "Upgrading locked dependencies (respects ranges in pyproject.toml)..."
+    uv lock --upgrade
+    uv sync --frozen --extra dev --extra build
+    echo "Lock updated (uv.lock) and .venv synced."
