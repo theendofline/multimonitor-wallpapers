@@ -483,36 +483,6 @@ def copy_system_libraries(appdir):
         else:
             print("Warning: Could not find Pillow directory")
 
-        # Copy additional Qt dependencies that might be needed
-        print("Copying additional Qt dependencies...")
-        qt_libs = [
-            "/usr/lib/x86_64-linux-gnu/libQt5Core.so.5",
-            "/usr/lib/x86_64-linux-gnu/libQt5Gui.so.5",
-            "/usr/lib/x86_64-linux-gnu/libQt5Widgets.so.5",
-            "/usr/lib/x86_64-linux-gnu/libQt5DBus.so.5",
-            "/usr/lib/x86_64-linux-gnu/libQt5XcbQpa.so.5",
-            "/usr/lib/x86_64-linux-gnu/libxcb.so.1",
-            "/usr/lib/x86_64-linux-gnu/libX11.so.6",
-            "/usr/lib/x86_64-linux-gnu/libXext.so.6",
-            "/usr/lib/x86_64-linux-gnu/libXrender.so.1",
-            "/usr/lib/x86_64-linux-gnu/libICE.so.6",
-            "/usr/lib/x86_64-linux-gnu/libSM.so.6",
-            "/usr/lib/x86_64-linux-gnu/libGL.so.1",
-            "/usr/lib/x86_64-linux-gnu/libglib-2.0.so.0",
-            "/usr/lib/x86_64-linux-gnu/libgobject-2.0.so.0",
-            "/usr/lib/x86_64-linux-gnu/libpango-1.0.so.0",
-            "/usr/lib/x86_64-linux-gnu/libcairo.so.2",
-            "/usr/lib/x86_64-linux-gnu/libfontconfig.so.1",
-        ]
-
-        for lib_path in qt_libs:
-            if os.path.exists(lib_path):
-                lib_name = os.path.basename(lib_path)
-                target = os.path.join(target_lib, lib_name)
-                if not os.path.exists(target):
-                    print(f"Copying {lib_path} to {target}")
-                    shutil.copy2(lib_path, target)
-
     except Exception as e:
         print(f"Warning: Error copying system libraries: {e}")
         # Continue despite errors
