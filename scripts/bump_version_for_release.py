@@ -48,7 +48,9 @@ def main() -> None:
     body = pp.read_text(encoding="utf-8")
     updated, n = _set_pyproject_version(body, version)
     if n != 1:
-        raise SystemExit(f"Expected exactly one project version line in pyproject.toml, replaced {n}")
+        raise SystemExit(
+            f"Expected exactly one project version line in pyproject.toml, replaced {n}"
+        )
     pp.write_text(updated, encoding="utf-8")
 
 

@@ -60,4 +60,4 @@ known-third-party = ["PySide6", "PIL"]
 
 [tool.ruff.flake8-quotes]
 docstring-quotes = "double"
-inline-quotes = "single" 
+inline-quotes = "single"

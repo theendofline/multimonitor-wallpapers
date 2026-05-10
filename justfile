@@ -50,13 +50,13 @@ delete-release version:
     set -euo pipefail
     TAG="v{{version}}"
     echo "Deleting release tag $TAG locally and remotely..."
-    
+
     # Delete local tag (don't fail if it doesn't exist)
     git tag -d "$TAG" || echo "Local tag $TAG doesn't exist"
-    
+
     # Delete remote tag (don't fail if it doesn't exist)
     git push origin --delete "$TAG" || echo "Remote tag $TAG doesn't exist or was already deleted"
-    
+
     echo "Tag $TAG has been deleted (if it existed)."
 
 # 5. Format code with ruff and black
@@ -72,7 +72,7 @@ help:
     #!/usr/bin/env bash
     echo "Available recipes:"
     just --list
-    
+
     echo -e "\nHidden recipes:"
     echo "    _ensure_venv           # 1. Ensure virtual environment is activated (private helper)"
 

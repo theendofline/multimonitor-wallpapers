@@ -1,0 +1,36 @@
+# https://pre-commit.com
+# Install: uv tool install pre-commit && pre-commit install
+# Run:     pre-commit run --all-files
+
+default_language_version:
+  python: python3.12
+
+exclude: ^(\.venv/|\.uv/|dist/|squashfs-root/|src/.*\.egg-info/)
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ["--maxkb=1000"]
+      - id: check-yaml
+      - id: check-toml
+      - id: check-json
+      - id: check-ast
+      - id: debug-statements
+      - id: detect-private-key
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.14.8
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix, --ignore, E501]
+
+  - repo: https://github.com/psf/black
+    rev: 26.1.0
+    hooks:
+      - id: black
+        language_version: python3.12
