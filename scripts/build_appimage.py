@@ -240,7 +240,7 @@ def install_dependencies(appdir):
     # Install dependencies directly with pip
     print("Installing dependencies with pip...")
     run_command([pip_cmd, "install", "--upgrade", "pip"])
-    run_command([pip_cmd, "install", "PySide6==6.9.0", "pillow==11.2.1"])
+    run_command([pip_cmd, "install", "PySide6==6.11.0", "pillow==12.2.0"])
 
     # Verify Pillow is properly installed
     print("Verifying Pillow installation...")

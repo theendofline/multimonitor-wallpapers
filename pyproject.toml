@@ -9,16 +9,16 @@ description = "Set different wallpapers on multiple monitors (Linux)."
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-  "PySide6==6.10.1",
-  "pillow==12.0.0",
+  "PySide6==6.11.0",
+  "pillow==12.2.0",
 ]
 
 [project.optional-dependencies]
 dev = [
-  "pytest==9.0.2",
-  "black==26.1.0",
-  "ruff==0.14.8",
-  "mypy==1.19.1",
+  "pytest==9.0.3",
+  "black==26.3.1",
+  "ruff==0.15.12",
+  "mypy==2.0.0",
 ]
 build = [
   "build>=1.2.0",
