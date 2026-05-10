@@ -97,7 +97,7 @@ install-just:
         echo "Just is already installed."
     fi
 
-# 9. Run linting checks
+# 8. Run linting checks
 lint: _ensure_venv
     @echo "Running ruff..."
     ruff check .
@@ -107,7 +107,7 @@ lint: _ensure_venv
     mypy src/multimonitor_wallpapers
     @echo "All linting checks passed!"
 
-# 10. Create and push a new version tag
+# 9. Create and push a new version tag
 release version:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -116,11 +116,11 @@ release version:
     git push origin "v{{version}}"
     echo "Tag v{{version}} pushed. GitHub Actions will build and publish the release."
 
-# 11. Run the application
+# 10. Run the application
 run: _ensure_venv
     uv run multimonitor-wallpapers
 
-# 12. Setup development environment (uv lockfile)
+# 11. Setup development environment (uv lockfile)
 setup:
     #!/usr/bin/env bash
     set -euo pipefail
@@ -133,13 +133,13 @@ setup:
     uv sync --frozen --extra dev --extra build
     echo "Development environment ready (.venv). Activate with: source .venv/bin/activate"
 
-# 13. Run tests
+# 12. Run tests
 test: _ensure_venv
     @echo "Running pytest..."
     pytest
     @echo "All tests passed!"
 
-# 14. Refresh lockfile and resync environment
+# 13. Refresh lockfile and resync environment
 update: _ensure_venv
     #!/usr/bin/env bash
     set -euo pipefail
