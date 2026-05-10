@@ -5,7 +5,7 @@
 default_language_version:
   python: python3.12
 
-exclude: ^(\.venv/|\.uv/|dist/|squashfs-root/|src/.*\.egg-info/)
+exclude: ^(\.venv/|dist/|squashfs-root/|src/.*\.egg-info/)
 
 repos:
   - repo: https://github.com/pre-commit/pre-commit-hooks
