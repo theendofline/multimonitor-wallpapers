@@ -1,0 +1,5 @@
+# CODEOWNERS file
+# This file defines the individuals or teams responsible for code in this repository.
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+* @theendofline
