@@ -1,62 +1,64 @@
-name: Python Tests
+name: Development checks
 
 on:
   push:
-    branches: [ main, dev ]
+    branches:
+      - dev
   pull_request:
-    branches: [ main, dev ]
+    branches:
+      - main
+      - dev
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: multimonitor-dev-checks-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
-  test:
+  quality:
+    name: Lint and test
     runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python 3.12
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
-    
-    - name: Install uv
-      run: |
-        curl -LsSf https://astral.sh/uv/install.sh | sh
-        echo "$HOME/.cargo/bin" >> $GITHUB_PATH
-    
-    - name: Install Just
-      run: |
-        curl --proto '=https' --tlsv1.2 -sSf https://just.systems/install.sh | bash -s -- --to $HOME/.local/bin
-        echo "$HOME/.local/bin" >> $GITHUB_PATH
-    
-    - name: Create virtual environment
-      run: uv venv
-    
-    - name: Install dependencies
-      run: |
-        source .venv/bin/activate
-        uv pip install pytest ruff black mypy
-        if [ -f requirements.txt ]; then uv pip install -r requirements.txt; fi
-        # Install the package in development mode with pip instead of uv to avoid setuptools issues
-        pip install -e .
-    
-    - name: Lint
-      run: |
-        source .venv/bin/activate
-        # Run ruff and black directly instead of using just
-        ruff check --ignore E501 .
-        black --check .
-        # Skip mypy due to package name issues
-        # mypy src/multimonitor_wallpapers
-    
-    - name: Install system dependencies
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 libxkbcommon-x11-0
-        # Install Qt and OpenGL dependencies needed by PySide6
-        sudo apt-get install -y libegl1 libgl1 libxcomposite1 libopengl0 libxrender1 libxcursor1 libxi6
-    
-    - name: Test
-      run: |
-        source .venv/bin/activate
-        CI=true xvfb-run --auto-servernum pytest
+    timeout-minutes: 20
 
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6.2.0
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v8.1.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Sync dependencies (locked)
+        run: |
+          set -euo pipefail
+          uv sync --frozen --extra dev
+
+      - name: Lint
+        run: |
+          set -euo pipefail
+          uv run ruff check --ignore E501 .
+          uv run black --check .
+
+      - name: Install system dependencies for tests
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            xvfb libxkbcommon-x11-0 libxcb-icccm4 libxcb-image0 libxcb-keysyms1 \
+            libxcb-randr0 libxcb-render-util0 libxcb-xinerama0 libxcb-xkb1 \
+            libegl1 libgl1 libxcomposite1 libopengl0 libxrender1 libxcursor1 libxi6
+
+      - name: Test
+        run: |
+          set -euo pipefail
+          CI=true xvfb-run --auto-servernum uv run pytest

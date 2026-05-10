@@ -26,4 +26,4 @@ known-third-party = ["PySide6", "PIL"]
 
 [lint.flake8-quotes]
 docstring-quotes = "double"
-inline-quotes = "single" 
+inline-quotes = "single"

@@ -1,23 +1,22 @@
-# To get started with Dependabot version updates, you'll need to specify which
-# package ecosystems to update and where the package manifests are located.
-# Please see the documentation for all configuration options:
 # https://docs.github.com/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
 
 version: 2
 updates:
-  # Backend: Python dependencies
-  - package-ecosystem: "pip"
-    directory: "/"            # Location of requirements.txt 
+  - package-ecosystem: "uv"
+    directory: "/"
     schedule:
       interval: "daily"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 20
     labels:
       - "dependencies"
       - "application"
+    assignees:
+      - "theendofline"
 
-  # GitHub Actions workflows
   - package-ecosystem: "github-actions"
-    directory: "/"            # Parses .github/workflows/*.yml
+    directory: "/"
     schedule:
       interval: "daily"
-    open-pull-requests-limit: 5
+    open-pull-requests-limit: 20
+    assignees:
+      - "theendofline"

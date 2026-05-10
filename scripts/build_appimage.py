@@ -40,8 +40,7 @@ def create_appdir(appdir):
     # Create a Python entry script that uses the shebang line
     entry_script = f"{appdir}/usr/bin/multimonitor-wallpapers"
     with open(entry_script, "w", newline="\n") as f:
-        f.write(
-            r"""#!/usr/bin/env python3
+        f.write(r"""#!/usr/bin/env python3
 # Entry point for MultiMonitor Wallpapers application
 
 import os
@@ -102,8 +101,7 @@ if appimage_mount:
 # Import and run the main function
 from multimonitor_wallpapers import main
 main()
-"""
-        )
+""")
 
     # Make it executable
     os.chmod(entry_script, 0o755)
@@ -121,8 +119,7 @@ def create_desktop_file(appdir):
     """Create desktop entry file."""
     desktop_file = f"{appdir}/usr/share/applications/multimonitor-wallpapers.desktop"
     with open(desktop_file, "w") as f:
-        f.write(
-            """[Desktop Entry]
+        f.write("""[Desktop Entry]
 Name=MultiMonitor Wallpapers
 Comment=Set different wallpapers for multiple monitors
 Exec=multimonitor-wallpapers
@@ -131,8 +128,7 @@ Type=Application
 Categories=Utility;Graphics;
 Terminal=false
 StartupNotify=true
-"""
-        )
+""")
 
     # Also copy to AppDir root as required by AppImage spec
     shutil.copy(desktop_file, f"{appdir}/multimonitor-wallpapers.desktop")
@@ -179,8 +175,7 @@ def create_apprun(appdir):
     print("Creating AppRun script...")
     apprun_path = f"{appdir}/AppRun"
     with open(apprun_path, "w", newline="\n") as f:
-        f.write(
-            """#!/bin/bash
+        f.write("""#!/bin/bash
 # AppRun script for MultiMonitor Wallpapers
 
 # Get the directory where the AppImage is mounted
@@ -199,8 +194,7 @@ export QML2_IMPORT_PATH="${HERE}/usr/lib/python3.12/site-packages/PySide6/qml"
 
 # Execute the application
 exec "${HERE}/usr/bin/python3" "${HERE}/usr/bin/multimonitor-wallpapers" "$@"
-"""
-        )
+""")
     # Make the AppRun script executable
     os.chmod(apprun_path, 0o755)
 
@@ -246,7 +240,7 @@ def install_dependencies(appdir):
     # Install dependencies directly with pip
     print("Installing dependencies with pip...")
     run_command([pip_cmd, "install", "--upgrade", "pip"])
-    run_command([pip_cmd, "install", "PySide6==6.9.0", "pillow==11.2.1"])
+    run_command([pip_cmd, "install", "PySide6==6.11.0", "pillow==12.2.0"])
 
     # Verify Pillow is properly installed
     print("Verifying Pillow installation...")
@@ -621,8 +615,7 @@ def main():
         # Create a simple test script
         test_script = os.path.join(temp_dir, "test_imports.py")
         with open(test_script, "w") as f:
-            f.write(
-                """
+            f.write("""
 import sys
 print("Python version:", sys.version)
 print("Python path:", sys.path)
@@ -638,8 +631,7 @@ try:
     print("PySide6 imported successfully")
 except ImportError as e:
     print("PySide6 import error:", e)
-"""
-            )
+""")
 
         # Make the AppImage executable
         os.chmod(output_path, 0o755)
