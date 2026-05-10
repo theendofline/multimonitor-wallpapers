@@ -15,6 +15,8 @@ logger = logging.getLogger(__name__)
 def compute_canvas_size(monitors: Iterable[Monitor]) -> tuple[int, int]:
     """Return the (width, height) of the bounding box that holds all monitors."""
     monitors = list(monitors)
+    if not monitors:
+        raise ValueError("compute_canvas_size requires at least one monitor")
     width = max(m["offset"][0] + int(m["geometry"].split("x")[0]) for m in monitors)
     height = max(m["offset"][1] + int(m["geometry"].split("x")[1]) for m in monitors)
     return width, height

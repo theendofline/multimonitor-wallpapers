@@ -46,6 +46,11 @@ def test_compute_canvas_size_covers_all_monitors(
     assert compute_canvas_size(monitors) == expected
 
 
+def test_compute_canvas_size_rejects_empty_monitor_list() -> None:
+    with pytest.raises(ValueError, match="at least one monitor"):
+        compute_canvas_size([])
+
+
 def _make_solid_image(path: Path, size: tuple[int, int], color: tuple[int, int, int]) -> None:
     Image.new("RGB", size, color).save(path, "JPEG", quality=90)
 
