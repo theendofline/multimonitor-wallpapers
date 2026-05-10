@@ -1,14 +1,10 @@
-# Import necessary modules
-import os  # For interacting with the operating system
-import subprocess  # For running system commands
-import sys  # For system-specific parameters and functions
+import os
+import subprocess
+import sys
 
-# Import PIL for image processing
 from PIL import Image
 from PySide6.QtCore import Qt
 from PySide6.QtGui import QColor, QPalette
-
-# Import required PySide6 modules for GUI
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
@@ -27,21 +23,18 @@ class MultiMonitorApp(QMainWindow):
         self.files = []
         self.file_inputs = []
 
-        self.init_ui()  # Initialize the UI
-        self.handle_dark_mode()  # Set up dark mode if system is using it
+        self.init_ui()
+        self.handle_dark_mode()
 
     def init_ui(self):
-        # Set up the main window
         self.setWindowTitle("Multi-Monitor Background App")
         self.setGeometry(300, 300, 1000, 400)
 
-        # Create central widget and main layout
         central_widget = QWidget()
         self.setCentralWidget(central_widget)
         main_layout = QVBoxLayout()
         central_widget.setLayout(main_layout)
 
-        # Detect monitors and dynamically create file inputs
         monitors = self.get_monitors_geometry()
         self.file_inputs = []
         file_layout = QHBoxLayout()
@@ -61,7 +54,6 @@ class MultiMonitorApp(QMainWindow):
             file_layout.addWidget(browse_button)
         main_layout.addLayout(file_layout)
 
-        # Create buttons layout (Apply, Cancel, Quit)
         button_layout = QHBoxLayout()
         ok_button = QPushButton("Apply", self)
         ok_button.clicked.connect(self.set_background)
@@ -75,7 +67,6 @@ class MultiMonitorApp(QMainWindow):
         main_layout.addLayout(button_layout)
 
     def browse_file(self, file_input):
-        # Open file dialog to select an image file
         file_name, _ = QFileDialog.getOpenFileName(
             self, "Select Image File", "", "Images (*.jpg *.jpeg *.png)"
         )
@@ -83,26 +74,22 @@ class MultiMonitorApp(QMainWindow):
             file_input.setText(file_name)
 
     def clear_inputs(self):
-        # Clear all file input fields
         for file_input in self.file_inputs:
             file_input.clear()
 
     def set_background(self):
-        # Get selected files from inputs
         self.files = [file_input.text() for file_input in self.file_inputs if file_input.text()]
 
         if len(self.files) < 1:
             self.statusBar().showMessage("Please select at least one image file.")
             return
 
-        # Validate required dependencies
         if not self.validate_dependencies():
             self.statusBar().showMessage(
                 "Missing required dependencies (gsettings, xrandr, ImageMagick)."
             )
             return
 
-        # Set background
         try:
             self.assemble_background_image(self.files)
             success = self.apply_background()
@@ -120,15 +107,14 @@ class MultiMonitorApp(QMainWindow):
         monitors = self.get_monitors_geometry()
         desktop_env = self.detect_desktop_environment()
 
-        # Choose appropriate output directory based on desktop environment
+        # GNOME also writes to ~/.cinnamon/backgrounds for back-compat
+        # if a user has switched DEs after first using this app on Cinnamon.
         if desktop_env == "gnome":
-            # Use Ubuntu standard location but also save to Cinnamon location for backward compatibility
             output_dir = os.path.expanduser("~/.local/share/backgrounds")
-            # Create Cinnamon path as well for compatibility
             cinnamon_dir = os.path.expanduser("~/.cinnamon/backgrounds")
             if not os.path.exists(cinnamon_dir):
                 os.makedirs(cinnamon_dir)
-        else:  # cinnamon or fallback
+        else:
             output_dir = os.path.expanduser("~/.cinnamon/backgrounds")
 
         output_path = os.path.join(output_dir, "multiMonitorBackground.jpg")
@@ -136,7 +122,6 @@ class MultiMonitorApp(QMainWindow):
         if not os.path.exists(output_dir):
             os.makedirs(output_dir)
 
-        # Calculate total width and height
         total_width = max(
             monitor["offset"][0] + int(monitor["geometry"].split("x")[0]) for monitor in monitors
         )
@@ -149,41 +134,36 @@ class MultiMonitorApp(QMainWindow):
         print(f"Detected desktop environment: {desktop_env}")
         print(f"Using output directory: {output_dir}")
 
-        # Create a blank canvas for the full screen size
         background = Image.new("RGB", (total_width, total_height), (0, 0, 0))
 
         try:
             for i, monitor in enumerate(monitors):
                 geometry = monitor["geometry"]
                 offset_x, offset_y = monitor["offset"]
+                # Cycle through provided images if fewer images than monitors.
                 image_path = image_paths[i % len(image_paths)]
 
                 print(
                     f"Monitor {i} ({monitor['name']}): geometry={geometry}, offset=({offset_x}, {offset_y})"
                 )
 
-                # Open and resize the image
                 with Image.open(image_path) as img:
-                    img = img.convert("RGB")  # Ensure the image is in RGB mode
+                    img = img.convert("RGB")
                     mon_width, mon_height = map(int, geometry.split("x"))
                     img.thumbnail((mon_width, mon_height), Image.LANCZOS)
 
                     print(f"  Image size after resize: {img.width}x{img.height}")
 
-                    # Create a new image with the correct size and paste the resized image
                     monitor_img = Image.new("RGB", (mon_width, mon_height), (0, 0, 0))
                     paste_x = (mon_width - img.width) // 2
                     paste_y = (mon_height - img.height) // 2
                     monitor_img.paste(img, (paste_x, paste_y))
 
-                    # Paste the monitor image onto the main canvas
                     background.paste(monitor_img, (offset_x, offset_y))
 
-            # Save the final image
             background.save(output_path, "JPEG", quality=95)
             print(f"Saved background image to: {output_path}")
 
-            # If we're on GNOME, also save to Cinnamon directory for compatibility
             if desktop_env == "gnome":
                 cinnamon_path = os.path.join(cinnamon_dir, "multiMonitorBackground.jpg")
                 background.save(cinnamon_path, "JPEG", quality=95)
@@ -196,7 +176,6 @@ class MultiMonitorApp(QMainWindow):
         return output_path
 
     def detect_desktop_environment(self):
-        # Try to detect Cinnamon or GNOME
         desktop = os.environ.get("XDG_CURRENT_DESKTOP", "").lower()
         print(f"XDG_CURRENT_DESKTOP is: {desktop}")
 
@@ -204,22 +183,19 @@ class MultiMonitorApp(QMainWindow):
             return "cinnamon"
         elif "gnome" in desktop or "ubuntu" in desktop:
             return "gnome"
-        # fallback
         return "unknown"
 
     def apply_background(self):
         desktop_env = self.detect_desktop_environment()
 
-        # Choose appropriate output path based on desktop environment
         if desktop_env == "gnome":
             output_path = os.path.expanduser(
                 "~/.local/share/backgrounds/multiMonitorBackground.jpg"
             )
-            # Also have a fallback to the Cinnamon path
             cinnamon_path = os.path.expanduser("~/.cinnamon/backgrounds/multiMonitorBackground.jpg")
             if not os.path.exists(output_path) and os.path.exists(cinnamon_path):
                 output_path = cinnamon_path
-        else:  # cinnamon or fallback
+        else:
             output_path = os.path.expanduser("~/.cinnamon/backgrounds/multiMonitorBackground.jpg")
 
         print(f"Using wallpaper file: {output_path}")
@@ -230,31 +206,28 @@ class MultiMonitorApp(QMainWindow):
                 schema = "org.cinnamon.desktop.background"
                 options = "spanned"
 
-                # Set wallpaper for Cinnamon
                 subprocess.check_call(
                     ["gsettings", "set", schema, "picture-uri", f"file://{output_path}"]
                 )
                 subprocess.check_call(["gsettings", "set", schema, "picture-options", options])
 
-                # For Cinnamon, refresh settings
+                # Cinnamon caches the URI; clear-then-set forces a refresh
+                # so the picture is reloaded from disk.
                 subprocess.check_call(["gsettings", "set", schema, "picture-uri", "''"])
                 subprocess.check_call(
                     ["gsettings", "set", schema, "picture-uri", f"file://{output_path}"]
                 )
 
             elif desktop_env == "gnome":
-                # Simple, minimal approach for GNOME
                 schema = "org.gnome.desktop.background"
 
-                # Try both zoom and spanned options - use the one that works
+                # Different GNOME versions accept different picture-options
+                # values; try them in order of preference.
                 for option in ["spanned", "zoom", "stretched"]:
                     try:
-                        # Set the image first
                         subprocess.check_call(
                             ["gsettings", "set", schema, "picture-uri", f"file://{output_path}"]
                         )
-
-                        # Then try to set the option
                         subprocess.check_call(
                             ["gsettings", "set", schema, "picture-options", option]
                         )
@@ -263,7 +236,6 @@ class MultiMonitorApp(QMainWindow):
                     except subprocess.CalledProcessError:
                         print(f"Option {option} failed for GNOME, trying next...")
 
-                # Check for dark mode and set picture-uri-dark if system is in dark mode
                 if self.is_system_in_dark_mode():
                     try:
                         subprocess.check_call(
@@ -277,11 +249,10 @@ class MultiMonitorApp(QMainWindow):
                         )
                         print("Set dark mode wallpaper as well")
                     except Exception:
-                        # Ignore errors for dark mode - it's optional
+                        # picture-uri-dark is optional; older GNOME lacks it.
                         pass
 
             else:
-                # Fallback to Cinnamon approach
                 schema = "org.cinnamon.desktop.background"
                 options = "spanned"
                 subprocess.check_call(
@@ -302,7 +273,7 @@ class MultiMonitorApp(QMainWindow):
                 parts = line.split("current ")[1].split(",")[0].strip().split()
                 if len(parts) >= 2:
                     return f"{parts[0]}x{parts[2]}"
-        return "1920x1080"  # Default fallback
+        return "1920x1080"
 
     def get_monitors_geometry(self):
         result = subprocess.run(["xrandr", "--query"], capture_output=True, text=True)
@@ -326,10 +297,9 @@ class MultiMonitorApp(QMainWindow):
                             )
 
         if not monitors:
-            # Fallback to a single monitor setup if no valid monitors are detected
             monitors.append({"name": "default", "geometry": "1920x1080", "offset": (0, 0)})
 
-        # Sort monitors by their x offset to ensure correct order
+        # Sort by x offset so monitor 0 is leftmost; matches user expectation.
         monitors.sort(key=lambda m: m["offset"][0])
 
         print("Detected monitors:")
@@ -338,7 +308,6 @@ class MultiMonitorApp(QMainWindow):
 
         return monitors
 
-    # Set up the palette based on the system's dark mode setting
     def handle_dark_mode(self):
         palette = self.palette()
         if self.is_system_in_dark_mode():
@@ -367,7 +336,6 @@ class MultiMonitorApp(QMainWindow):
             return False
 
     def validate_dependencies(self):
-        # Check if required commands are available
         for command in ["gsettings", "xrandr", "convert"]:
             if (
                 subprocess.call(
