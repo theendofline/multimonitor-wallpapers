@@ -6,12 +6,13 @@ import logging
 import os
 import sys
 
-from PySide6.QtCore import Qt
-from PySide6.QtGui import QColor, QPalette
+from PySide6.QtCore import QSize, Qt
+from PySide6.QtGui import QColor, QPalette, QPixmap
 from PySide6.QtWidgets import (
     QApplication,
     QFileDialog,
     QHBoxLayout,
+    QLabel,
     QLineEdit,
     QMainWindow,
     QPushButton,
@@ -23,12 +24,18 @@ from . import compositor, desktop, monitors
 
 logger = logging.getLogger(__name__)
 
+# 16:9 keeps the layout predictable across monitor aspect ratios; the
+# chosen image is scaled with KeepAspectRatio so portrait/4:3 sources
+# letterbox cleanly inside the tile.
+THUMBNAIL_SIZE = QSize(240, 135)
+
 
 class MultiMonitorApp(QMainWindow):
     def __init__(self) -> None:
         super().__init__()
         self.files: list[str] = []
         self.file_inputs: list[QLineEdit] = []
+        self.thumbnails: list[QLabel] = []
         self.monitors: list[monitors.Monitor] = []
 
         self.init_ui()
@@ -45,22 +52,41 @@ class MultiMonitorApp(QMainWindow):
 
         self.monitors = monitors.get_monitors()
         self.file_inputs = []
-        file_layout = QHBoxLayout()
+        self.thumbnails = []
+        edit_style = (
+            "color: white; background-color: #353535;"
+            if desktop.is_system_in_dark_mode()
+            else "color: black; background-color: white;"
+        )
+
+        monitors_row = QHBoxLayout()
         for monitor in self.monitors:
+            column = QVBoxLayout()
+
+            thumbnail = QLabel("No image selected", self)
+            thumbnail.setFixedSize(THUMBNAIL_SIZE)
+            thumbnail.setAlignment(Qt.AlignmentFlag.AlignCenter)
+            thumbnail.setStyleSheet("QLabel { border: 1px solid #888; }")
+            column.addWidget(thumbnail, alignment=Qt.AlignmentFlag.AlignCenter)
+            self.thumbnails.append(thumbnail)
+
             file_input = QLineEdit(self)
             file_input.setPlaceholderText(f"Select image for {monitor['name']}")
-            file_input.setStyleSheet(
-                "color: white; background-color: #353535;"
-                if desktop.is_system_in_dark_mode()
-                else "color: black; background-color: white;"
+            file_input.setStyleSheet(edit_style)
+            # textChanged fires for Browse, manual edits, and clear_inputs(),
+            # so this is the single place keeping the preview in sync.
+            file_input.textChanged.connect(
+                lambda text, t=thumbnail: self._update_thumbnail(t, text)
             )
-            file_layout.addWidget(file_input)
+            column.addWidget(file_input)
             self.file_inputs.append(file_input)
 
             browse_button = QPushButton("Browse", self)
             browse_button.clicked.connect(lambda _, fi=file_input: self.browse_file(fi))
-            file_layout.addWidget(browse_button)
-        main_layout.addLayout(file_layout)
+            column.addWidget(browse_button)
+
+            monitors_row.addLayout(column)
+        main_layout.addLayout(monitors_row)
 
         button_layout = QHBoxLayout()
         ok_button = QPushButton("Apply", self)
@@ -80,6 +106,28 @@ class MultiMonitorApp(QMainWindow):
         )
         if file_name:
             file_input.setText(file_name)
+
+    @staticmethod
+    def _update_thumbnail(thumbnail: QLabel, file_path: str) -> None:
+        if not file_path:
+            thumbnail.setPixmap(QPixmap())
+            thumbnail.setText("No image selected")
+            return
+
+        pixmap = QPixmap(file_path)
+        if pixmap.isNull():
+            thumbnail.setPixmap(QPixmap())
+            thumbnail.setText("Invalid image")
+            return
+
+        thumbnail.setText("")
+        thumbnail.setPixmap(
+            pixmap.scaled(
+                THUMBNAIL_SIZE,
+                Qt.AspectRatioMode.KeepAspectRatio,
+                Qt.TransformationMode.SmoothTransformation,
+            )
+        )
 
     def clear_inputs(self) -> None:
         for file_input in self.file_inputs:

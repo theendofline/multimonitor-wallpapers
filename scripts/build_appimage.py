@@ -144,31 +144,18 @@ StartupNotify=true
 
 
 def create_icon(appdir):
-    """Create application icon or use existing one."""
-    # For this example, we'll generate a simple icon if one doesn't exist
-    # In a real app, you'd use your app's icon
-    icon_path = Path("assets/icon.png")
-
+    """Copy the bundled application icon into AppDir."""
+    icon_path = PROJECT_ROOT / "assets" / "icon.png"
     if not icon_path.exists():
-        print("No icon found. Generating a simple placeholder icon...")
-        os.makedirs("assets", exist_ok=True)
+        raise FileNotFoundError(
+            f"Application icon not found at {icon_path}. "
+            "The icon is checked into the repository; restore it before building."
+        )
 
-        from PIL import Image, ImageDraw
-
-        img = Image.new("RGB", (256, 256), color=(73, 109, 137))
-        d = ImageDraw.Draw(img)
-        d.rectangle([20, 20, 236, 236], outline=(255, 255, 255), width=5)
-        d.rectangle([60, 60, 120, 120], fill=(255, 255, 255))
-        d.rectangle([136, 60, 196, 120], fill=(255, 255, 255))
-        d.rectangle([60, 136, 196, 196], fill=(255, 255, 255))
-
-        img.save(icon_path)
-
-    # Copy icon to AppDir
     icon_dest = f"{appdir}/usr/share/icons/hicolor/256x256/apps/multimonitor-wallpapers.png"
     shutil.copy(icon_path, icon_dest)
 
-    # Also copy to AppDir root as required by AppImage spec
+    # Required by the AppImage spec: a copy at AppDir root.
     shutil.copy(icon_path, f"{appdir}/multimonitor-wallpapers.png")
 
 
