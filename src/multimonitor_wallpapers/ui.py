@@ -93,9 +93,7 @@ class MultiMonitorApp(QMainWindow):
             return
 
         if not desktop.validate_dependencies():
-            self.statusBar().showMessage(
-                "Missing required dependencies (gsettings, xrandr, ImageMagick)."
-            )
+            self.statusBar().showMessage("Missing required dependencies (gsettings, xrandr).")
             return
 
         try:

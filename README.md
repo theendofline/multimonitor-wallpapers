@@ -10,7 +10,7 @@ Python + PySide6 desktop app for **Linux Cinnamon**: pick different images per m
 
 - **Python 3.12+**
 - **Cinnamon**
-- **`gsettings`**, **`xrandr`**, ImageMagick **`convert`**
+- **`gsettings`**, **`xrandr`**
 - **[uv](https://docs.astral.sh/uv/)** (recommended) for installs aligned with **`uv.lock`**
 
 ## Install & run (uv, recommended)
@@ -131,7 +131,7 @@ Pull requests welcome. Keep **`uv.lock`** in sync when you change **`pyproject.t
 ## Troubleshooting
 
 - If the wallpaper does not update, try logging out and back in.
-- Confirm **`gsettings`**, **`xrandr`**, and **`convert`** are on **`PATH`**.
+- Confirm **`gsettings`** and **`xrandr`** are on **`PATH`**.
 - If **`uv sync --frozen`** fails after a **`pyproject.toml`** edit, run **`uv lock`** and commit the updated **`uv.lock`**.
 
 ## Future ideas

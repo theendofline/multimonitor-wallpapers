@@ -61,7 +61,7 @@ def is_system_in_dark_mode() -> bool:
 
 def validate_dependencies() -> bool:
     """Check that the runtime tools we shell out to are installed."""
-    for command in ["gsettings", "xrandr", "convert"]:
+    for command in ["gsettings", "xrandr"]:
         if (
             subprocess.call(
                 ["which", command], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
