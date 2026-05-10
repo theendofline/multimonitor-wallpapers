@@ -1,227 +1,137 @@
 [![Python Tests](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/python-tests.yml/badge.svg)](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/python-tests.yml)
 [![CodeQL Advanced](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/codeql.yml/badge.svg)](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/codeql.yml)
-[![Build and Release AppImage](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/release.yml/badge.svg)](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/release.yml)
-# Multi-Monitor Wallpapers App
+[![Build and Release](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/release.yml/badge.svg)](https://github.com/theendofline/multimonitor-wallpapers/actions/workflows/release.yml)
 
-## Description
+# Multi-Monitor Wallpapers
 
-The Multi-Monitor Wallpapers App is a Python-based desktop application designed for Linux systems running the Cinnamon desktop environment. It allows users to set different wallpapers for multiple monitors with ease. The app provides a user-friendly interface for selecting images, automatically assembles them into a single background image, and applies it across all connected monitors.
+Python + PySide6 desktop app for **Linux Cinnamon**: pick different images per monitor, composite them, and apply via `gsettings`.
 
-## Features
+## System requirements
 
-- Support for multiple monitors
-- Intuitive graphical user interface
-- Automatic image resizing and positioning
-- Dark mode support
-- Dependency validation
-- Error handling with user feedback
+- **Python 3.12+**
+- **Cinnamon**
+- **`gsettings`**, **`xrandr`**, ImageMagick **`convert`**
+- **[uv](https://docs.astral.sh/uv/)** (recommended) for installs aligned with **`uv.lock`**
 
-## Requirements
+## Install & run (uv, recommended)
 
-- Python 3.12+
-- PySide6
-- Pillow (PIL)
-- Cinnamon desktop environment
-- Linux system with `gsettings`, `xrandr`, and ImageMagick's `convert` command
+Dependencies and exact transitive versions live in **`pyproject.toml`** + **`uv.lock`**.
 
-## Installation
+```bash
+# One-time: install uv — https://docs.astral.sh/uv/getting-started/installation/
 
-1. Clone the repository:
-   ```
-   git clone https://github.com/yourusername/multi-monitor-wallpapers-app.git
-   cd multi-monitor-wallpapers-app
-   ```
+# Create .venv and install app + dev + build extras from the lockfile
+uv sync --frozen --extra dev --extra build
 
-2. Install the required Python packages:
-   ```
-   pip install -r requirements.txt
-   ```
+# Run without manually activating the venv
+uv run python multimonitor_wallpapers.py
+# or, after: source .venv/bin/activate
+python multimonitor_wallpapers.py
+```
 
-### Using the AppImage (Linux)
+**Runtime only** (no pytest/ruff/black/mypy/build tools):
 
-For Linux users, you can download and use the AppImage:
+```bash
+uv sync --frozen
+uv run python multimonitor_wallpapers.py
+```
 
-1. Download the latest AppImage from the [Releases](https://github.com/yourusername/multi-monitor-wallpapers-app/releases) page.
-2. Make it executable:
-   ```
-   chmod +x MultiMonitor-*.AppImage
-   ```
-3. Run the application:
-   ```
-   ./MultiMonitor-*.AppImage
-   ```
+### Lock / sync workflow
 
-The AppImage is self-contained and does not require installation. It should work on most modern Linux distributions.
+| Command | Purpose |
+|--------|---------|
+| **`uv lock`** | Resolve deps from **`pyproject.toml`** and write **`uv.lock`** (exact versions for the full tree). |
+| **`uv sync --frozen …`** | Make **`.venv`** match **`uv.lock`** without changing the lock; fails if the lock is out of date (CI uses this). |
+| **`uv lock --upgrade`** | Refresh **`uv.lock`** to the newest versions allowed by pins/ranges, then commit the diff. |
 
-## Usage
+**Benefits:** reproducible envs, fast installs, reviewable dependency PRs, and **`uv sync`** can prune packages no longer in the lock.
 
-1. Launch the application:
-   ```
-   python widget.py
-   ```
+After editing dependencies in **`pyproject.toml`**, run **`uv lock`** (or **`just update`** to upgrade inside current constraints) and commit **`uv.lock`** so CI stays green.
 
-2. Use the "Browse" buttons to select wallpaper images for each monitor.
-3. Click "Apply" to set the wallpapers.
-4. Use "Cancel" to clear your selections or "Quit" to exit the application.
+### pip-only fallback
 
-## How It Works
+If you do not use uv:
 
-1. The app detects connected monitors and their geometries using `xrandr`.
-2. Users select image files for each monitor.
-3. The app resizes and positions the images according to each monitor's resolution and position.
-4. A combined wallpaper image is created and saved.
-5. The app uses `gsettings` to apply the new wallpaper to the Cinnamon desktop.
+```bash
+pip install -e ".[dev]"   # app + dev tools
+# or runtime only:
+pip install -e .
+```
+
+pip does **not** read **`uv.lock`**; you only get the direct pins from **`pyproject.toml`**.
+
+## AppImage (Linux)
+
+1. Download the latest **`.AppImage`** from [Releases](https://github.com/theendofline/multimonitor-wallpapers/releases).
+2. `chmod +x MultiMonitor-*.AppImage`
+3. `./MultiMonitor-*.AppImage`
+
+The AppImage bundles Python, PySide6, and app code; no separate Python install is required.
+
+## Usage (from source)
+
+1. Start the UI: `uv run python multimonitor_wallpapers.py` (or activate **`.venv`** and run the same).
+2. Choose images per monitor, **Apply** to set wallpapers, **Cancel** / **Quit** as needed.
+
+## How it works
+
+1. Detect monitors with **`xrandr`**.
+2. Resize/place images with **Pillow**.
+3. Write a combined image and apply it with **`gsettings`** on Cinnamon.
 
 ## Development
 
-The main application logic is contained in the `MultiMonitorApp` class in `widget.py`. The UI is created using PySide6, and image processing is done with Pillow.
-
-To modify the UI:
-
-1. Edit the `initUI` method in the `MultiMonitorApp` class.
-2. If using Qt Designer, edit the `form.ui` file and regenerate `ui_form.py`.
-
-### Developer Setup
-
-1. Clone the repository and navigate to the project directory.
-
-2. Install Just (recommended):
-   ```
-   # Linux/macOS with homebrew
-   brew install just
-
-   # Linux with apt
-   sudo apt install just
-
-   # With cargo
-   cargo install just
-   
-   # Or use our helper script
-   curl -LsSf https://just.systems/install.sh | bash -s -- --to ~/.local/bin
-   ```
-
-   If you don't want to install Just, you can use the usual Python tools directly.
-
-3. Install uv (if not already installed):
-   ```
-   curl -LsSf https://astral.sh/uv/install.sh | sh
-   ```
-
-4. Set up the development environment:
-   ```
-   just setup
-   ```
-   
-   This will:
-   - Create a virtual environment (.venv)
-   - Install the package in development mode with all dev dependencies
-
-5. Activate the virtual environment:
-   ```
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
-
-### Development Workflow
-
-You can use the provided commands with `just`:
+**[Just](https://github.com/casey/just)** wraps common tasks (`just` to list recipes).
 
 ```bash
-# List all available commands
-just
-
-# Run the application
-just run
-
-# Development tools
-just lint        # Run linting checks
-just format      # Format code
-just test        # Run tests
-just clean       # Clean build artifacts
-just icon        # Generate application icon
-just appimage    # Build AppImage for distribution
-
-# Create a new release (e.g., "0.1.0")
-just release 0.1.0
+just setup     # uv sync --frozen --extra dev --extra build (creates .venv)
+just run       # run the app
+just test      # pytest
+just lint      # ruff + black --check
+just format    # ruff --fix + black
+just appimage  # build AppImage into dist/
+just update    # uv lock --upgrade && uv sync (refresh lock + venv)
 ```
 
-### Package Structure
+### Layout
 
-- `widget.py`: Main application code
-- `setup.py` and `pyproject.toml`: Packaging configuration
-- `tests/`: Test directory
-- `.github/workflows/`: CI configuration
+| Path | Role |
+|------|------|
+| `src/multimonitor_wallpapers/` | Application package (`widget.py`, `__main__.py`, …) |
+| `scripts/build_appimage.py` | AppImage build |
+| `scripts/build_deb.sh` | `.deb` from built AppImage (CI) |
+| `pyproject.toml` | Project metadata, **`[project]`** deps, optional **`dev`** / **`build`** extras |
+| **`uv.lock`** | Resolved dependency graph (commit when it changes) |
+| `.github/workflows/` | CI: tests on PR/`dev`, release pipeline on **`main`** |
+
+## Building an AppImage locally
+
+```bash
+sudo apt-get install -y libfuse2 desktop-file-utils libglib2.0-bin   # plus Qt/X deps as in CI if needed
+just appimage
+```
+
+Output: **`dist/MultiMonitor-x86_64.AppImage`**.
+
+## CI and releases
+
+- **Pull requests / `dev`:** **`.github/workflows/python-tests.yml`** runs **`uv sync --frozen --extra dev`** then lint + tests.
+- **`main`:** **`.github/workflows/release.yml`** runs tests, builds **AppImage** + **`.deb`**, then **[semantic-release](https://semantic-release.gitbook.io/)** creates GitHub releases from [Conventional Commits](https://www.conventionalcommits.org/). Release commits bump **`pyproject.toml`**, **`uv.lock`**, and `__version__` and are tagged **`[skip ci]`** so they do not retrigger the full build.
 
 ## Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Pull requests welcome. Keep **`uv.lock`** in sync when you change **`pyproject.toml`** dependencies (`uv lock`).
 
 ## License
 
-This project is licensed under the GNU General Public License v3.0 - see the [LICENSE](LICENSE) file for details.
-
-The GNU General Public License v3.0 (GPLv3) is a free, copyleft license for software and other kinds of works. The licenses for most software and other practical works are designed to take away your freedom to share and change the works. By contrast, the GNU General Public License is intended to guarantee your freedom to share and change all versions of a program--to make sure it remains free software for all its users.
-
-Key points of the GPLv3:
-
-1. You can use the software for any purpose
-2. You can change the software to suit your needs
-3. You can share the software with your friends and neighbors
-4. You can share the changes you make
-
-However, if you distribute modified versions of the software, you must:
-
-1. Clearly mark the software as modified
-2. Distribute
-
-## Acknowledgments
-
-- PySide6 for the GUI framework
-- Pillow for image processing
-- Cinnamon desktop environment developers
+[GNU General Public License v3.0](LICENSE) (GPLv3).
 
 ## Troubleshooting
 
-- If the wallpaper doesn't change immediately, try logging out and back in.
-- Ensure all dependencies are installed and available in your system PATH.
-- Check the console output for any error messages if the application fails.
+- If the wallpaper does not update, try logging out and back in.
+- Confirm **`gsettings`**, **`xrandr`**, and **`convert`** are on **`PATH`**.
+- If **`uv sync --frozen`** fails after a **`pyproject.toml`** edit, run **`uv lock`** and commit the updated **`uv.lock`**.
 
-## Future Improvements
+## Future ideas
 
-- Add support for other desktop environments
-- Implement drag-and-drop functionality for image selection
-- Add preview functionality for the combined wallpaper
-- Implement wallpaper cycling/slideshow feature
-
-## Building and Distribution
-
-### Building an AppImage
-
-To build an AppImage for distribution:
-
-1. Make sure you have the required dependencies:
-   ```
-   sudo apt-get install libfuse2 desktop-file-utils libglib2.0-bin
-   ```
-
-2. Build the AppImage:
-   ```
-   just appimage
-   ```
-
-3. The AppImage will be created in the `dist/` directory.
-
-### Automated Builds with GitHub Actions
-
-The project includes GitHub Actions workflows to automatically:
-
-1. Run tests and linting checks on every push and pull request
-2. Build and publish an AppImage when a new tag is created
-
-To create a new release:
-
-```bash
-# Create and push a release tag
-just release 0.2.0
-```
-
-GitHub Actions will automatically build the AppImage and create a release.
+- Other desktop environments, drag-and-drop, live preview, slideshows.
