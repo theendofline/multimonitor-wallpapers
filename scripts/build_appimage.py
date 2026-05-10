@@ -313,22 +313,10 @@ def install_dependencies(appdir):
         except Exception as e:
             print(f"Warning: Failed to copy {source}: {e}")
 
-    # Copy essential modules from system site-packages
-    print("Copying essential system modules...")
-    essential_modules = ["_distutils_hack", "pip", "setuptools", "pkg_resources"]
-    for module in essential_modules:
-        source = os.path.join(site_packages_path, module)
-        if os.path.exists(source):
-            target = os.path.join(target_site_packages, module)
-            try:
-                if os.path.isdir(source):
-                    shutil.copytree(source, target, symlinks=True, dirs_exist_ok=True)
-                else:
-                    shutil.copy2(source, target)
-            except Exception as e:
-                print(f"Warning: Failed to copy {source}: {e}")
-
-    # Copy our installed packages from the temporary venv
+    # Copy our installed packages from the temporary venv. pip,
+    # setuptools, pkg_resources and _distutils_hack are install-time
+    # tooling only and are never imported at runtime, so we skip them
+    # to keep the AppImage smaller.
     print("Copying installed packages...")
     for item in os.listdir(venv_site_packages):
         if item in ["__pycache__", "pip", "setuptools", "pkg_resources", "_distutils_hack"]:
