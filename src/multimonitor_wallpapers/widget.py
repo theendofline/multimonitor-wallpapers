@@ -1,3 +1,4 @@
+import logging
 import os
 import subprocess
 import sys
@@ -15,6 +16,8 @@ from PySide6.QtWidgets import (
     QVBoxLayout,
     QWidget,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class MultiMonitorApp(QMainWindow):
@@ -100,7 +103,7 @@ class MultiMonitorApp(QMainWindow):
             else:
                 self.statusBar().showMessage("Failed to apply background. Check logs for errors.")
         except Exception as e:
-            print(f"Error setting background: {e}")
+            logger.exception("Error setting background")
             self.statusBar().showMessage(f"Error setting background: {e}")
 
     def assemble_background_image(self, image_paths):
@@ -129,10 +132,10 @@ class MultiMonitorApp(QMainWindow):
             monitor["offset"][1] + int(monitor["geometry"].split("x")[1]) for monitor in monitors
         )
 
-        print(f"Total screen size: {total_width}x{total_height}")
-        print(f"Number of monitors: {len(monitors)}")
-        print(f"Detected desktop environment: {desktop_env}")
-        print(f"Using output directory: {output_dir}")
+        logger.info("Total screen size: %dx%d", total_width, total_height)
+        logger.info("Number of monitors: %d", len(monitors))
+        logger.info("Detected desktop environment: %s", desktop_env)
+        logger.info("Using output directory: %s", output_dir)
 
         background = Image.new("RGB", (total_width, total_height), (0, 0, 0))
 
@@ -143,8 +146,13 @@ class MultiMonitorApp(QMainWindow):
                 # Cycle through provided images if fewer images than monitors.
                 image_path = image_paths[i % len(image_paths)]
 
-                print(
-                    f"Monitor {i} ({monitor['name']}): geometry={geometry}, offset=({offset_x}, {offset_y})"
+                logger.info(
+                    "Monitor %d (%s): geometry=%s, offset=(%d, %d)",
+                    i,
+                    monitor["name"],
+                    geometry,
+                    offset_x,
+                    offset_y,
                 )
 
                 with Image.open(image_path) as img:
@@ -152,7 +160,7 @@ class MultiMonitorApp(QMainWindow):
                     mon_width, mon_height = map(int, geometry.split("x"))
                     img.thumbnail((mon_width, mon_height), Image.LANCZOS)
 
-                    print(f"  Image size after resize: {img.width}x{img.height}")
+                    logger.debug("Image size after resize: %dx%d", img.width, img.height)
 
                     monitor_img = Image.new("RGB", (mon_width, mon_height), (0, 0, 0))
                     paste_x = (mon_width - img.width) // 2
@@ -162,22 +170,22 @@ class MultiMonitorApp(QMainWindow):
                     background.paste(monitor_img, (offset_x, offset_y))
 
             background.save(output_path, "JPEG", quality=95)
-            print(f"Saved background image to: {output_path}")
+            logger.info("Saved background image to: %s", output_path)
 
             if desktop_env == "gnome":
                 cinnamon_path = os.path.join(cinnamon_dir, "multiMonitorBackground.jpg")
                 background.save(cinnamon_path, "JPEG", quality=95)
-                print(f"Also saved to Cinnamon location: {cinnamon_path}")
+                logger.info("Also saved to Cinnamon location: %s", cinnamon_path)
 
-        except Exception as e:
-            print(f"Error assembling background image: {e}")
+        except Exception:
+            logger.exception("Error assembling background image")
             raise
 
         return output_path
 
     def detect_desktop_environment(self):
         desktop = os.environ.get("XDG_CURRENT_DESKTOP", "").lower()
-        print(f"XDG_CURRENT_DESKTOP is: {desktop}")
+        logger.debug("XDG_CURRENT_DESKTOP is: %s", desktop)
 
         if "cinnamon" in desktop:
             return "cinnamon"
@@ -198,8 +206,8 @@ class MultiMonitorApp(QMainWindow):
         else:
             output_path = os.path.expanduser("~/.cinnamon/backgrounds/multiMonitorBackground.jpg")
 
-        print(f"Using wallpaper file: {output_path}")
-        print(f"File exists: {os.path.exists(output_path)}")
+        logger.info("Using wallpaper file: %s", output_path)
+        logger.debug("File exists: %s", os.path.exists(output_path))
 
         try:
             if desktop_env == "cinnamon":
@@ -231,10 +239,10 @@ class MultiMonitorApp(QMainWindow):
                         subprocess.check_call(
                             ["gsettings", "set", schema, "picture-options", option]
                         )
-                        print(f"Successfully set {option} for GNOME")
+                        logger.info("Successfully set %s for GNOME", option)
                         break
                     except subprocess.CalledProcessError:
-                        print(f"Option {option} failed for GNOME, trying next...")
+                        logger.warning("Option %s failed for GNOME, trying next", option)
 
                 if self.is_system_in_dark_mode():
                     try:
@@ -247,7 +255,7 @@ class MultiMonitorApp(QMainWindow):
                                 f"file://{output_path}",
                             ]
                         )
-                        print("Set dark mode wallpaper as well")
+                        logger.info("Set dark mode wallpaper as well")
                     except Exception:
                         # picture-uri-dark is optional; older GNOME lacks it.
                         pass
@@ -262,8 +270,8 @@ class MultiMonitorApp(QMainWindow):
 
             return True
 
-        except subprocess.CalledProcessError as e:
-            print(f"Error applying background: {e}")
+        except subprocess.CalledProcessError:
+            logger.exception("Error applying background")
             return False
 
     def get_screen_geometry(self):
@@ -302,9 +310,14 @@ class MultiMonitorApp(QMainWindow):
         # Sort by x offset so monitor 0 is leftmost; matches user expectation.
         monitors.sort(key=lambda m: m["offset"][0])
 
-        print("Detected monitors:")
+        logger.info("Detected monitors:")
         for monitor in monitors:
-            print(f"  {monitor['name']}: {monitor['geometry']} at offset {monitor['offset']}")
+            logger.info(
+                "  %s: %s at offset %s",
+                monitor["name"],
+                monitor["geometry"],
+                monitor["offset"],
+            )
 
         return monitors
 
@@ -343,12 +356,16 @@ class MultiMonitorApp(QMainWindow):
                 )
                 != 0
             ):
-                print(f"Dependency '{command}' is missing.")
+                logger.error("Dependency %r is missing.", command)
                 return False
         return True
 
 
 def main():
+    logging.basicConfig(
+        level=os.environ.get("MULTIMONITOR_LOG_LEVEL", "INFO").upper(),
+        format="%(asctime)s %(levelname)s %(name)s: %(message)s",
+    )
     app = QApplication(sys.argv)
     window = MultiMonitorApp()
     window.show()
