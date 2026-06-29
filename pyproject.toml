@@ -20,7 +20,7 @@ multimonitor-wallpapers = "multimonitor_wallpapers.ui:main"
 dev = [
   "pytest==9.1.1",
   "black==26.5.1",
-  "ruff==0.15.13",
+  "ruff==0.15.20",
   "mypy==2.1.0",
 ]
 build = [
