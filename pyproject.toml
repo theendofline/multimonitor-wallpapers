@@ -24,7 +24,7 @@ dev = [
   "mypy==2.3.0",
 ]
 build = [
-  "build>=1.2.0",
+  "build>=1.5.1",
   "wheel>=0.45.0",
   "setuptools>=83.0.0",
 ]
