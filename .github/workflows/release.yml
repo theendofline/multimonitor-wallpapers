@@ -116,14 +116,14 @@ jobs:
         run: |
           set -euo pipefail
           npx -y \
-            -p semantic-release \
-            -p @semantic-release/commit-analyzer \
-            -p @semantic-release/release-notes-generator \
-            -p @semantic-release/changelog \
-            -p @semantic-release/exec \
-            -p @semantic-release/git \
-            -p @semantic-release/github \
-            -p conventional-changelog-conventionalcommits \
+            -p semantic-release@25.0.9 \
+            -p @semantic-release/commit-analyzer@13.0.1 \
+            -p @semantic-release/release-notes-generator@14.1.1 \
+            -p @semantic-release/changelog@7.0.0 \
+            -p @semantic-release/exec@7.1.0 \
+            -p @semantic-release/git@11.0.1 \
+            -p @semantic-release/github@12.0.9 \
+            -p conventional-changelog-conventionalcommits@10.3.0 \
             semantic-release
 
       - name: Publish artifact summary
