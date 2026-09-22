@@ -1,3 +1,5 @@
+## [0.2.1](https://github.com/theendofline/multimonitor-wallpapers/compare/v0.2.0...v0.2.1) (2026-09-22)
+
 # [0.2.0](https://github.com/theendofline/multimonitor-wallpapers/compare/v0.1.3...v0.2.0) (2026-05-10)
 
 
