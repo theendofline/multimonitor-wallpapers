@@ -25,7 +25,7 @@ dev = [
 ]
 build = [
   "build>=1.2.0",
-  "wheel>=0.45.0",
+  "wheel>=0.48.0",
   "setuptools>=83.0.0",
 ]
 
