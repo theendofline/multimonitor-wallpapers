@@ -12,14 +12,24 @@ from .monitors import Monitor
 logger = logging.getLogger(__name__)
 
 
+def _parse_geometry(geometry: str) -> tuple[int, int]:
+    width, height = geometry.split("x", 1)
+    return int(width), int(height)
+
+
 def compute_canvas_size(monitors: Iterable[Monitor]) -> tuple[int, int]:
     """Return the (width, height) of the bounding box that holds all monitors."""
     monitors = list(monitors)
     if not monitors:
         raise ValueError("compute_canvas_size requires at least one monitor")
-    width = max(m["offset"][0] + int(m["geometry"].split("x")[0]) for m in monitors)
-    height = max(m["offset"][1] + int(m["geometry"].split("x")[1]) for m in monitors)
-    return width, height
+    max_right = 0
+    max_bottom = 0
+    for monitor in monitors:
+        mon_width, mon_height = _parse_geometry(monitor["geometry"])
+        offset_x, offset_y = monitor["offset"]
+        max_right = max(max_right, offset_x + mon_width)
+        max_bottom = max(max_bottom, offset_y + mon_height)
+    return max_right, max_bottom
 
 
 def compose_wallpaper(
@@ -60,7 +70,7 @@ def compose_wallpaper(
 
         with Image.open(image_path) as src_img:
             rgb_img = src_img.convert("RGB")
-            mon_width, mon_height = map(int, geometry.split("x"))
+            mon_width, mon_height = _parse_geometry(geometry)
             rgb_img.thumbnail((mon_width, mon_height), Image.Resampling.LANCZOS)
 
             logger.debug("Image size after resize: %dx%d", rgb_img.width, rgb_img.height)

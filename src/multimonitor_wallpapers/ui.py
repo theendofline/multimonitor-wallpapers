@@ -37,6 +37,7 @@ class MultiMonitorApp(QMainWindow):
         self.file_inputs: list[QLineEdit] = []
         self.thumbnails: list[QLabel] = []
         self.monitors: list[monitors.Monitor] = []
+        self._dark_mode = desktop.is_system_in_dark_mode()
 
         self.init_ui()
         self.handle_dark_mode()
@@ -55,7 +56,7 @@ class MultiMonitorApp(QMainWindow):
         self.thumbnails = []
         edit_style = (
             "color: white; background-color: #353535;"
-            if desktop.is_system_in_dark_mode()
+            if self._dark_mode
             else "color: black; background-color: white;"
         )
 
@@ -162,7 +163,7 @@ class MultiMonitorApp(QMainWindow):
 
     def handle_dark_mode(self) -> None:
         palette = self.palette()
-        if desktop.is_system_in_dark_mode():
+        if self._dark_mode:
             white = Qt.GlobalColor.white
             palette.setColor(QPalette.ColorRole.Window, QColor(53, 53, 53))
             palette.setColor(QPalette.ColorRole.WindowText, white)

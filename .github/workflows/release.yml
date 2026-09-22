@@ -19,15 +19,15 @@ jobs:
       contents: read
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.1
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6.2.0
+        uses: actions/setup-python@v7.0.0
         with:
           python-version: "3.12"
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v8.1.0
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           python-version: "3.12"
           enable-cache: true
@@ -35,13 +35,13 @@ jobs:
       - name: Sync dependencies (locked)
         run: |
           set -euo pipefail
-          uv sync --frozen --extra dev
+          uv sync --frozen --no-build --no-binary-package multimonitor-wallpapers --extra dev
 
       - name: Lint
         run: |
           set -euo pipefail
-          uv run ruff check --ignore E501 .
-          uv run black --check .
+          uv run --frozen --no-build --no-binary-package multimonitor-wallpapers ruff check --ignore E501 .
+          uv run --frozen --no-build --no-binary-package multimonitor-wallpapers black --check .
 
       - name: Install system dependencies for tests
         run: |
@@ -55,7 +55,7 @@ jobs:
       - name: Test
         run: |
           set -euo pipefail
-          CI=true xvfb-run --auto-servernum uv run pytest
+          CI=true xvfb-run --auto-servernum uv run --frozen --no-build --no-binary-package multimonitor-wallpapers pytest
 
   release:
     name: Build artifacts and release
@@ -69,24 +69,24 @@ jobs:
       pull-requests: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v6.0.2
+        uses: actions/checkout@v7.0.1
         with:
           fetch-depth: 0
           fetch-tags: true
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6.2.0
+        uses: actions/setup-python@v7.0.0
         with:
           python-version: "3.12"
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v8.1.0
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           python-version: "3.12"
           enable-cache: true
 
       - name: Setup Node.js
-        uses: actions/setup-node@v6.4.0
+        uses: actions/setup-node@v7.0.0
         with:
           node-version: "22"
 
@@ -115,15 +115,15 @@ jobs:
           RELEASE_BUILD_NUMBER: ${{ github.run_number }}
         run: |
           set -euo pipefail
-          npx -y \
-            -p semantic-release \
-            -p @semantic-release/commit-analyzer \
-            -p @semantic-release/release-notes-generator \
-            -p @semantic-release/changelog \
-            -p @semantic-release/exec \
-            -p @semantic-release/git \
-            -p @semantic-release/github \
-            -p conventional-changelog-conventionalcommits \
+          npx --ignore-scripts -y \
+            -p semantic-release@25.0.9 \
+            -p @semantic-release/commit-analyzer@13.0.1 \
+            -p @semantic-release/release-notes-generator@14.1.1 \
+            -p @semantic-release/changelog@7.0.0 \
+            -p @semantic-release/exec@7.1.0 \
+            -p @semantic-release/git@11.0.1 \
+            -p @semantic-release/github@12.0.9 \
+            -p conventional-changelog-conventionalcommits@10.3.0 \
             semantic-release
 
       - name: Publish artifact summary
