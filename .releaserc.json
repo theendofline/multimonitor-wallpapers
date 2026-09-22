@@ -11,7 +11,28 @@
     [
       "@semantic-release/release-notes-generator",
       {
-        "preset": "conventionalcommits"
+        "preset": "conventionalcommits",
+        "presetConfig": {
+          "types": [
+            { "type": "feat", "section": "Features", "effect": "bump" },
+            { "type": "feature", "section": "Features", "effect": "bump" },
+            { "type": "fix", "section": "Bug Fixes", "effect": "bump" },
+            { "type": "perf", "section": "Performance Improvements", "effect": "bump" },
+            { "type": "revert", "section": "Reverts", "effect": "bump" },
+            { "type": "refactor", "section": "Code Refactoring", "effect": "changelog" },
+            { "type": "docs", "section": "Documentation", "effect": "changelog" },
+            { "type": "test", "section": "Tests", "effect": "changelog" },
+            { "type": "build", "section": "Build System", "effect": "changelog" },
+            { "type": "ci", "section": "Continuous Integration", "effect": "changelog" },
+            { "type": "style", "section": "Styles", "effect": "changelog" },
+            { "type": "chore", "scope": "release", "section": "Miscellaneous Chores", "effect": "hidden" },
+            { "type": "chore", "section": "Miscellaneous Chores", "effect": "changelog" }
+          ]
+        },
+        "writerOpts": {
+          "mainTemplate": "{{> header}}\n\n{{#each commitGroups}}\n{{#if title}}\n### {{title}}\n\n{{/if}}\n{{#each commits}}\n{{> commit}}\n{{/each}}\n\n{{/each}}",
+          "commitPartial": "* {{#if scope}}**{{scope}}:** {{/if}}{{subject}}{{#if hash}} ([{{shortHash}}]({{@root.host}}/{{@root.owner}}/{{@root.repository}}/commit/{{hash}})){{/if}}\n"
+        }
       }
     ],
     [
