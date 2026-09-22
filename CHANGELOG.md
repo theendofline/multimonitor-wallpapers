@@ -1,3 +1,8 @@
+## [0.2.2](https://github.com/theendofline/multimonitor-wallpapers/compare/v0.2.1...v0.2.2) (2026-09-22)
+### Bug Fixes
+
+* **release:** include every commit type in changelog notes ([bfb767b](https://github.com/theendofline/multimonitor-wallpapers/commit/bfb767bdce25b1768eb94331b3e34d0ced2d0a1d))
+
 ## [0.2.1](https://github.com/theendofline/multimonitor-wallpapers/compare/v0.2.0...v0.2.1) (2026-09-22)
 
 ### Bug Fixes
