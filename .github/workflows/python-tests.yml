@@ -25,15 +25,15 @@ jobs:
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v7.0.0
+        uses: actions/checkout@v7.0.1
 
       - name: Set up Python 3.12
-        uses: actions/setup-python@v6.3.0
+        uses: actions/setup-python@v7.0.0
         with:
           python-version: "3.12"
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v8.2.0
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
         with:
           python-version: "3.12"
           enable-cache: true
@@ -41,13 +41,13 @@ jobs:
       - name: Sync dependencies (locked)
         run: |
           set -euo pipefail
-          uv sync --frozen --extra dev
+          uv sync --frozen --no-build --no-binary-package multimonitor-wallpapers --extra dev
 
       - name: Lint
         run: |
           set -euo pipefail
-          uv run ruff check --ignore E501 .
-          uv run black --check .
+          uv run --frozen --no-build --no-binary-package multimonitor-wallpapers ruff check --ignore E501 .
+          uv run --frozen --no-build --no-binary-package multimonitor-wallpapers black --check .
 
       - name: Install system dependencies for tests
         run: |
@@ -61,4 +61,68 @@ jobs:
       - name: Test
         run: |
           set -euo pipefail
-          CI=true xvfb-run --auto-servernum uv run pytest
+          CI=true xvfb-run --auto-servernum uv run --frozen --no-build --no-binary-package multimonitor-wallpapers pytest
+
+  pre-commit:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v6.3.0
+        with:
+          python-version: "3.12"
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@bec219d24cd3e171d82865faccec33120bb574f4 # v10.1.0
+        with:
+          python-version: "3.12"
+          enable-cache: true
+
+      - name: Run pre-commit
+        run: |
+          set -euo pipefail
+          uv tool run --no-build --from pre-commit==4.6.2 pre-commit run --all-files --show-diff-on-failure
+
+  commitlint:
+    name: Commitlint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v7.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6.4.0
+        with:
+          node-version: "22"
+
+      - name: Lint commit messages
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD: ${{ github.event.pull_request.head.sha }}
+          PUSH_BEFORE: ${{ github.event.before }}
+          PUSH_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          if [[ "$EVENT_NAME" == "pull_request" ]]; then
+            from="$PR_BASE"
+            to="$PR_HEAD"
+          elif [[ "$PUSH_BEFORE" =~ ^0+$ ]]; then
+            echo "New branch with no base; skipping range lint."
+            exit 0
+          else
+            from="$PUSH_BEFORE"
+            to="$PUSH_SHA"
+          fi
+          npx --ignore-scripts -y \
+            -p @commitlint/cli@21.2.3 \
+            -p @commitlint/config-conventional@21.2.3 \
+            commitlint --from "$from" --to "$to" --verbose

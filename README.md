@@ -117,12 +117,14 @@ Output: **`dist/MultiMonitor-x86_64.AppImage`**.
 
 ## CI and releases
 
-- **Pull requests / `dev`:** **`.github/workflows/python-tests.yml`** runs **`uv sync --frozen --extra dev`** then lint + tests.
+- **Pull requests / `dev`:** **`.github/workflows/python-tests.yml`** runs **`uv sync --frozen --extra dev`**, lint, tests, **pre-commit**, and **commitlint**.
 - **`main`:** **`.github/workflows/release.yml`** runs tests, builds **AppImage** + **`.deb`**, then **[semantic-release](https://semantic-release.gitbook.io/)** creates GitHub releases from [Conventional Commits](https://www.conventionalcommits.org/). Release commits bump **`pyproject.toml`**, **`src/multimonitor_wallpapers/__init__.py`** (`__version__`), **`uv.lock`**, and are tagged **`[skip ci]`** so they do not retrigger the full build.
 
 ## Contributing
 
 Pull requests welcome. Keep **`uv.lock`** in sync when you change **`pyproject.toml`** dependencies (`uv lock`).
+
+Commits follow [Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`). `just setup` installs the pre-commit hooks, including commitlint on `commit-msg`. Existing clones: `pre-commit install`.
 
 ## License
 
