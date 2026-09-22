@@ -27,7 +27,7 @@ jobs:
           python-version: "3.12"
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v8.2.0
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
         with:
           python-version: "3.12"
           enable-cache: true
@@ -35,13 +35,13 @@ jobs:
       - name: Sync dependencies (locked)
         run: |
           set -euo pipefail
-          uv sync --frozen --extra dev
+          uv sync --frozen --no-build --no-binary-package multimonitor-wallpapers --extra dev
 
       - name: Lint
         run: |
           set -euo pipefail
-          uv run ruff check --ignore E501 .
-          uv run black --check .
+          uv run --frozen --no-build --no-binary-package multimonitor-wallpapers ruff check --ignore E501 .
+          uv run --frozen --no-build --no-binary-package multimonitor-wallpapers black --check .
 
       - name: Install system dependencies for tests
         run: |
@@ -55,7 +55,7 @@ jobs:
       - name: Test
         run: |
           set -euo pipefail
-          CI=true xvfb-run --auto-servernum uv run pytest
+          CI=true xvfb-run --auto-servernum uv run --frozen --no-build --no-binary-package multimonitor-wallpapers pytest
 
   release:
     name: Build artifacts and release
@@ -80,7 +80,7 @@ jobs:
           python-version: "3.12"
 
       - name: Set up uv
-        uses: astral-sh/setup-uv@v8.2.0
+        uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
         with:
           python-version: "3.12"
           enable-cache: true
@@ -115,7 +115,7 @@ jobs:
           RELEASE_BUILD_NUMBER: ${{ github.run_number }}
         run: |
           set -euo pipefail
-          npx -y \
+          npx --ignore-scripts -y \
             -p semantic-release@25.0.9 \
             -p @semantic-release/commit-analyzer@13.0.1 \
             -p @semantic-release/release-notes-generator@14.1.1 \
