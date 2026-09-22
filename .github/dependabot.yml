@@ -12,6 +12,31 @@ updates:
       - "application"
     assignees:
       - "theendofline"
+    groups:
+      production-dependencies-major:
+        dependency-type: production
+        update-types:
+          - "major"
+      production-dependencies-minor:
+        dependency-type: production
+        update-types:
+          - "minor"
+      production-dependencies-patch:
+        dependency-type: production
+        update-types:
+          - "patch"
+      development-dependencies-major:
+        dependency-type: development
+        update-types:
+          - "major"
+      development-dependencies-minor:
+        dependency-type: development
+        update-types:
+          - "minor"
+      development-dependencies-patch:
+        dependency-type: development
+        update-types:
+          - "patch"
 
   - package-ecosystem: "github-actions"
     directory: "/"

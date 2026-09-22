@@ -107,14 +107,13 @@ lint: _ensure_venv
     mypy src/multimonitor_wallpapers
     @echo "All linting checks passed!"
 
-# 9. Create and push a new version tag
-release version:
+# 9. Releases are published by semantic-release from conventional commits on main
+release:
     #!/usr/bin/env bash
     set -euo pipefail
-    echo "Creating release v{{version}}..."
-    git tag -a "v{{version}}" -m "Release v{{version}}"
-    git push origin "v{{version}}"
-    echo "Tag v{{version}} pushed. GitHub Actions will build and publish the release."
+    echo "Releases are created by semantic-release when conventional commits land on main."
+    echo "Use feat:, fix:, or a BREAKING CHANGE footer. Do not push version tags by hand."
+    exit 1
 
 # 10. Run the application
 run: _ensure_venv
@@ -131,6 +130,11 @@ setup:
         export PATH="$HOME/.local/bin:$PATH"
     fi
     uv sync --frozen --extra dev --extra build
+    if ! command -v pre-commit &> /dev/null; then
+        echo "Installing pre-commit..."
+        uv tool install pre-commit
+    fi
+    pre-commit install
     echo "Development environment ready (.venv). Activate with: source .venv/bin/activate"
 
 # 12. Run tests
